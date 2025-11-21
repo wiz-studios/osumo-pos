@@ -216,9 +216,18 @@ export default function POSPage() {
 
             if (itemsError) throw itemsError
 
+            console.log('✅ Order created successfully:', {
+                orderId: order.id,
+                status: order.status,
+                payment_status: order.payment_status,
+                total: order.total,
+                sent_to_cashier_at: order.sent_to_cashier_at
+            })
+
             toast({
-                title: "Order Created",
-                description: "Order has been sent to cashier for payment processing.",
+                title: "✅ Order Created Successfully!",
+                description: `Order sent to cashier for payment. Total: KES ${cartTotal.toFixed(2)}`,
+                duration: 5000,
             })
 
             clearCart()
@@ -311,8 +320,9 @@ export default function POSPage() {
             // Success feedback with order reference
             const orderRef = `#K${order.id.slice(0, 4).toUpperCase()}`
             toast({
-                title: "Order Sent to Kitchen! 🍳",
-                description: `Order ${orderRef} for ${orderType === 'dine-in' ? selectedTable : 'Takeaway'}`
+                title: "🍳 Order Sent to Kitchen!",
+                description: `Order ${orderRef} for ${orderType === 'dine-in' ? selectedTable : 'Takeaway'} • ${cart.length} item${cart.length > 1 ? 's' : ''}`,
+                duration: 5000,
             })
 
             clearCart()

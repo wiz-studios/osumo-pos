@@ -87,6 +87,16 @@ export default function CashierPage() {
 
             if (error) throw error
 
+            console.log('📋 Cashier fetched pending orders:', {
+                count: data?.length || 0,
+                orders: data?.map(o => ({
+                    id: o.id,
+                    status: o.status,
+                    total: o.total,
+                    sent_at: o.sent_to_cashier_at
+                }))
+            })
+
             setPendingOrders(data as OrderWithItems[])
         } catch (error: any) {
             console.error('Error fetching orders:', error)

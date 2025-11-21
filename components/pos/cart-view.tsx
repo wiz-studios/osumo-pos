@@ -56,7 +56,7 @@ export function CartView({
                 </Button>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-4 min-h-0">
+            <ScrollArea className="flex-1 min-h-0 pr-2">
                 {cart.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10 m-2">
                         <ShoppingCart className="h-8 w-8 mb-2 opacity-20" />
@@ -64,7 +64,7 @@ export function CartView({
                         <p className="text-xs mt-1">Tap items to add to order</p>
                     </div>
                 ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-3 max-h-[400px]">
                         {cart.map((item) => (
                             <div key={item.id} className="flex justify-between items-start p-2 rounded-lg bg-muted/30">
                                 <div className="flex-1">
@@ -97,7 +97,7 @@ export function CartView({
                         ))}
                     </div>
                 )}
-            </div>
+            </ScrollArea>
 
             <div className="mt-4 space-y-4 border-t pt-4 p-2">
                 <div className="space-y-2">
