@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getSupabaseClient } from "@/lib/supabase/client"
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js"
 import { useStaffRole } from "@/hooks/use-staff-role"
 import { useToast } from "@/hooks/use-toast"
 import { PendingOrdersQueue } from "@/components/cashier/pending-orders-queue"
@@ -32,7 +33,7 @@ interface OrderWithItems {
 
 export default function CashierPage() {
     const router = useRouter()
-    const { role, staffId, loading: roleLoading } = useStaffRole()
+    const { role, staffId, staffName, loading: roleLoading } = useStaffRole()
     const { toast } = useToast()
 
     const [pendingOrders, setPendingOrders] = useState<OrderWithItems[]>([])
@@ -53,7 +54,8 @@ export default function CashierPage() {
     useEffect(() => {
         if (staffId && role === 'cashier') {
             fetchPendingOrders()
-            setupRealtime()
+            const cleanup = setupRealtime()
+            return cleanup
         }
     }, [staffId, role])
 
@@ -111,7 +113,7 @@ export default function CashierPage() {
                     table: 'orders',
                     filter: 'status=in.(pending_payment,paid)'
                 },
-                (payload) => {
+                (payload: RealtimePostgresChangesPayload<any>) => {
                     if (payload.new.status === 'pending_payment') {
                         // New order or updated order
                         setPendingOrders(prev => {
@@ -146,6 +148,30 @@ export default function CashierPage() {
 
         return () => {
             supabase.removeChannel(channel)
+        }
+    }
+
+    // Helper to serialize errors (captures non-enumerable Error props)
+    const serializeError = (err: any) => {
+        if (!err) return null
+        try {
+            // Copy all own property names (including non-enumerable) to a plain object
+            const plain: any = {}
+            Object.getOwnPropertyNames(err).forEach((k) => {
+                // @ts-ignore
+                plain[k] = err[k]
+            })
+
+            // Ensure common Error fields are present
+            if (err instanceof Error) {
+                plain.name = err.name
+                plain.message = err.message
+                plain.stack = err.stack
+            }
+
+            return plain
+        } catch (e) {
+            return { message: String(err) }
         }
     }
 
@@ -184,7 +210,15 @@ export default function CashierPage() {
             }
 
             // 2. Prepare payment details (structured for security)
-            const paymentDetails = paymentMethod === 'cash'
+            type LocalPaymentDetails = {
+                method: 'cash' | 'mpesa'
+                amount_received?: number
+                change_given?: number
+                phone?: string
+                transaction_id?: string
+            }
+
+            const paymentDetails: LocalPaymentDetails = paymentMethod === 'cash'
                 ? {
                     method: 'cash',
                     amount_received: paymentData.amount_received,
@@ -196,7 +230,10 @@ export default function CashierPage() {
                     transaction_id: paymentData.transaction_code.trim().toUpperCase()
                 }
 
-            // 3. Update order (with double-payment prevention)
+            // 3. Generate receipt BEFORE database update (we need the data)
+            const receiptData = generateKRAReceipt(selectedOrder, paymentDetails, staffName || undefined)
+
+            // 4. Update order with payment + receipt snapshot (with double-payment prevention)
             const { error: updateError } = await supabase
                 .from('orders')
                 .update({
@@ -205,14 +242,40 @@ export default function CashierPage() {
                     payment_method: paymentMethod,
                     cashier_id: staffId,
                     paid_at: new Date().toISOString(),
-                    payment_details: paymentDetails
+                    payment_details: paymentDetails,
+                    // 🧾 RECEIPT STORAGE (Immutable, KRA-compliant)
+                    receipt_number: receiptData.receiptNumber,
+                    receipt_generated_at: new Date().toISOString(),
+                    receipt_data: {
+                        // Complete snapshot for retrieval
+                        receiptNumber: receiptData.receiptNumber,
+                        orderNumber: receiptData.orderNumber,
+                        date: receiptData.date,
+                        time: receiptData.time,
+                        cashier: receiptData.cashier,
+                        items: receiptData.items,
+                        taxableAmount: receiptData.taxableAmount,
+                        vatAmount: receiptData.vatAmount,
+                        total: receiptData.total,
+                        paymentMethod: receiptData.paymentMethod,
+                        paymentDetails: receiptData.paymentDetails,
+                        qrCode: receiptData.qrCode,
+                        // Additional metadata for compliance
+                        businessName: 'OSUMO',
+                        kraPin: 'P051234567X',
+                        orderType: selectedOrder.order_type,
+                        tableNumber: selectedOrder.table_number
+                    }
                 })
                 .eq('id', selectedOrder.id)
                 .eq('status', 'pending_payment')  // 🔒 CRITICAL: Prevents double-payment
 
             if (updateError) throw updateError
 
-            // 4. Log event (DO NOT store full transaction details in logs)
+            // 5. Immediately remove from pending orders list (don't wait for realtime)
+            setPendingOrders(prev => prev.filter(o => o.id !== selectedOrder.id))
+
+            // 6. Log event (DO NOT store full transaction details in logs)
             const { error: eventError } = await supabase
                 .from('order_events')
                 .insert({
@@ -224,6 +287,7 @@ export default function CashierPage() {
                     metadata: {
                         payment_method: paymentMethod,
                         amount: selectedOrder.total,
+                        receipt_number: receiptData.receiptNumber,
                         timestamp: new Date().toISOString()
                         // 🔒 Security: Never log full TXN IDs or phone numbers
                     }
@@ -231,14 +295,11 @@ export default function CashierPage() {
 
             if (eventError) console.error('Event logging error:', eventError)
 
-            // 5. Generate receipt
-            const receipt = generateKRAReceipt(selectedOrder, paymentDetails)
-
-            // 6. Show receipt
-            setReceiptData(receipt)
+            // 7. Show receipt
+            setReceiptData(receiptData)
             setReceiptOpen(true)
 
-            // 7. Clear selection
+            // 8. Clear selection
             setSelectedOrder(null)
 
             toast({
@@ -247,17 +308,16 @@ export default function CashierPage() {
             })
 
         } catch (error: any) {
-            console.error('Payment error object:', error)
-            console.error('Payment error details:', {
-                message: error.message,
-                code: error.code,
-                details: error.details,
-                hint: error.hint
-            })
+            // Serialize error so non-enumerable properties (like Error.message) are visible in console
+            const serialized = serializeError(error)
+            console.error('Payment error object:', serialized)
+
+            // Provide a defensive fallback for the toast message
+            const toastMessage = (serialized && (serialized.message || serialized.msg)) || 'An unknown error occurred. Check console for details.'
 
             toast({
                 title: "Payment Failed",
-                description: error.message || "An unknown error occurred. Check console for details.",
+                description: toastMessage,
                 variant: "destructive"
             })
         } finally {
@@ -298,7 +358,7 @@ export default function CashierPage() {
                     <PendingOrdersQueue
                         orders={pendingOrders}
                         selectedOrderId={selectedOrder?.id || null}
-                        onSelectOrder={setSelectedOrder}
+                        onSelectOrder={(order) => setSelectedOrder(order as OrderWithItems)}
                     />
                 </div>
 

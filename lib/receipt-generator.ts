@@ -47,7 +47,8 @@ interface PaymentDetails {
  */
 export function generateKRAReceipt(
     order: Order,
-    paymentDetails: PaymentDetails
+    paymentDetails: PaymentDetails,
+    cashierName?: string
 ): ReceiptData {
     const now = new Date()
 
@@ -72,7 +73,7 @@ export function generateKRAReceipt(
         orderNumber: order.id.slice(0, 8).toUpperCase(),
         date: now.toLocaleDateString('en-KE'),
         time: now.toLocaleTimeString('en-KE', { hour12: false }),
-        cashier: 'Cashier',  // TODO: Get from staff table
+        cashier: cashierName || 'Cashier',  // Use actual name or fallback
         items: order.order_items.map(item => ({
             name: item.menu_item.name,
             quantity: item.quantity,

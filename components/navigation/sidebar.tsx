@@ -8,6 +8,7 @@ import {
   ShoppingCart,
   ChefHat,
   CreditCard,
+  Receipt,
   BarChart3,
   LogOut,
   Users,
@@ -54,6 +55,12 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       label: "Cashier",
       href: "/dashboard/cashier",
       icon: CreditCard,
+      roles: ["manager", "cashier"],
+    },
+    {
+      label: "Receipts",
+      href: "/dashboard/receipts",
+      icon: Receipt,
       roles: ["manager", "cashier"],
     },
     {
