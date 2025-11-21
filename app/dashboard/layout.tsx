@@ -4,6 +4,7 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Sidebar } from "@/components/navigation/sidebar"
+import { MobileNav } from "@/components/navigation/mobile-nav"
 import { OnlineChecker } from "@/components/online-checker"
 import { getSupabaseClient } from "@/lib/supabase/client"
 
@@ -64,8 +65,16 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen bg-background">
       <OnlineChecker />
-      <Sidebar />
-      <main className="flex-1 overflow-auto">{children}</main>
+      <div className="hidden md:flex">
+        <Sidebar />
+      </div>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="flex items-center p-4 border-b md:hidden bg-card">
+          <MobileNav />
+          <span className="ml-4 font-bold text-lg">NRB POS</span>
+        </header>
+        <main className="flex-1 overflow-auto">{children}</main>
+      </div>
     </div>
   )
 }

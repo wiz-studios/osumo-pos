@@ -213,12 +213,12 @@ export default function OrdersPage() {
   const filteredOrders = getFilteredOrders()
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <ClipboardList className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold">Active Orders</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Active Orders</h1>
           <p className="text-muted-foreground">
             {orders.length} active {orders.length === 1 ? 'order' : 'orders'}
           </p>
@@ -227,7 +227,7 @@ export default function OrdersPage() {
 
       {/* Filters */}
       <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-        <TabsList>
+        <TabsList className="w-full justify-start overflow-x-auto h-auto p-1">
           <TabsTrigger value="all">
             All ({orders.length})
           </TabsTrigger>
@@ -235,10 +235,10 @@ export default function OrdersPage() {
             Cooking ({orders.filter(o => o.status === 'in_kitchen' && o.kitchen_status !== 'ready').length})
           </TabsTrigger>
           <TabsTrigger value="ready">
-            Ready for Bill ({orders.filter(o => o.status === 'in_kitchen' && o.kitchen_status === 'ready').length})
+            Ready ({orders.filter(o => o.status === 'in_kitchen' && o.kitchen_status === 'ready').length})
           </TabsTrigger>
           <TabsTrigger value="at_cashier">
-            At Cashier ({orders.filter(o => o.status === 'pending_payment').length})
+            Cashier ({orders.filter(o => o.status === 'pending_payment').length})
           </TabsTrigger>
         </TabsList>
 

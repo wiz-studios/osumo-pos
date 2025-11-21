@@ -20,7 +20,12 @@ import { Badge } from "@/components/ui/badge"
 import { useStaffRole } from "@/hooks/use-staff-role"
 import { signOut } from "@/lib/utils/auth-client"
 
-export function Sidebar() {
+interface SidebarProps {
+  className?: string
+  onNavigate?: () => void
+}
+
+export function Sidebar({ className, onNavigate }: SidebarProps) {
   const pathname = usePathname()
   const { role, staffName, loading } = useStaffRole()
   const displayName = staffName?.trim() || "Admin user"
@@ -97,7 +102,7 @@ export function Sidebar() {
   const visibleItems = menuItems.filter((item) => !role || item.roles.includes(role))
 
   return (
-    <div className="w-64 border-r border-border bg-card p-4 flex flex-col">
+    <div className={cn("w-64 border-r border-border bg-card p-4 flex flex-col", className)}>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-foreground">NRB POS</h1>
         <p className="text-sm text-muted-foreground">Restaurant System</p>
@@ -126,7 +131,7 @@ export function Sidebar() {
           const Icon = item.icon
           const isActive = pathname === item.href
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} onClick={onNavigate}>
               <button
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",

@@ -247,10 +247,17 @@ export default function CashierPage() {
             })
 
         } catch (error: any) {
-            console.error('Payment error:', error)
+            console.error('Payment error object:', error)
+            console.error('Payment error details:', {
+                message: error.message,
+                code: error.code,
+                details: error.details,
+                hint: error.hint
+            })
+
             toast({
                 title: "Payment Failed",
-                description: error.message,
+                description: error.message || "An unknown error occurred. Check console for details.",
                 variant: "destructive"
             })
         } finally {

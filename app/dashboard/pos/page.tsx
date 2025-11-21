@@ -16,6 +16,8 @@ import { CheckoutDialog } from "@/components/pos/checkout-dialog"
 import { ReceiptDialog } from "@/components/pos/receipt-dialog"
 import { TableSelector } from "@/components/pos/table-selector"
 import { useToast } from "@/hooks/use-toast"
+import { CartView } from "@/components/pos/cart-view"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 interface CartItem {
     menuItem: MenuItem
@@ -39,6 +41,7 @@ export default function POSPage() {
     const [cart, setCart] = useState<CartItem[]>([])
     const [isCartLoaded, setIsCartLoaded] = useState(false)
     const [processingOrder, setProcessingOrder] = useState(false)
+    const [isCartOpen, setIsCartOpen] = useState(false)
 
     // Dialog state
     const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
@@ -186,8 +189,9 @@ export default function POSPage() {
                     restaurant_id: restaurantId,
                     staff_id: staffId,
                     order_type: "dine-in", // Default, can be updated later
-                    status: "new",
+                    status: "pending_payment",
                     payment_status: "unpaid",
+                    sent_to_cashier_at: new Date().toISOString(),
                     total: cartTotal,
                 })
                 .select()
@@ -596,111 +600,72 @@ export default function POSPage() {
             </div>
 
             {/* Right Side: Cart */}
+            {/* Right Side: Cart (Desktop) */}
             <div className="w-96 border-l pl-4 flex flex-col hidden md:flex bg-card rounded-lg shadow-sm">
-                <div className="flex items-center justify-between mb-4 p-2 border-b">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                        <ShoppingCart className="h-5 w-5" />
-                        Current Order
-                    </h2>
-                    <Button variant="ghost" size="icon" onClick={clearCart} disabled={cart.length === 0}>
-                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                    </Button>
-                </div>
+                <CartView
+                    cart={cart}
+                    onUpdateQuantity={updateCartQuantity}
+                    onClear={clearCart}
+                    total={cartTotal}
+                    staffRole={staffRole}
+                    orderType={orderType}
+                    onOrderTypeChange={setOrderType}
+                    selectedTable={selectedTable}
+                    onTableChange={setSelectedTable}
+                    onSendToKitchen={handleSendToKitchen}
+                    onCreateUnpaid={handleCreateUnpaidOrder}
+                    onCheckout={() => setIsCheckoutOpen(true)}
+                    processing={processingOrder}
+                />
+            </div>
 
-                <ScrollArea className="flex-1 pr-4 max-h-[calc(100vh-20rem)]">
-                    {cart.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10 m-2">
-                            <ShoppingCart className="h-8 w-8 mb-2 opacity-20" />
-                            <p>Cart is empty</p>
-                            <p className="text-xs mt-1">Tap items to add to order</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {cart.map((item) => (
-                                <div key={item.id} className="flex justify-between items-start p-2 rounded-lg bg-muted/30">
-                                    <div className="flex-1">
-                                        <div className="font-medium">{item.menuItem.name}</div>
-                                        {item.notes && (
-                                            <div className="text-xs text-muted-foreground italic">"{item.notes}"</div>
-                                        )}
-                                        <div className="text-sm font-semibold mt-1">KES {item.menuItem.price * item.quantity}</div>
-                                    </div>
-                                    <div className="flex items-center gap-2 bg-background rounded-md border p-1">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-6 w-6"
-                                            onClick={() => updateCartQuantity(item.id, -1)}
-                                        >
-                                            <Minus className="h-3 w-3" />
-                                        </Button>
-                                        <span className="w-4 text-center text-sm font-bold">{item.quantity}</span>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-6 w-6"
-                                            onClick={() => updateCartQuantity(item.id, 1)}
-                                        >
-                                            <Plus className="h-3 w-3" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </ScrollArea>
-
-                <div className="mt-4 space-y-4 border-t pt-4 p-2">
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Subtotal</span>
+            {/* Mobile Cart Trigger & Sheet */}
+            <div className="md:hidden">
+                {cart.length > 0 && (
+                    <div className="fixed bottom-4 left-4 right-4 z-50">
+                        <Button
+                            className="w-full shadow-lg text-lg py-6 flex justify-between"
+                            onClick={() => setIsCartOpen(true)}
+                        >
+                            <div className="flex items-center gap-2">
+                                <ShoppingCart className="h-5 w-5" />
+                                <span>{cart.reduce((acc, item) => acc + item.quantity, 0)} items</span>
+                            </div>
                             <span>KES {cartTotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between font-bold text-xl">
-                            <span>Total</span>
-                            <span>KES {cartTotal.toFixed(2)}</span>
-                        </div>
+                        </Button>
                     </div>
-                    {staffRole === "waiter" ? (
-                        <div className="space-y-3">
-                            <TableSelector
+                )}
+
+                <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
+                    <SheetContent side="right" className="w-full sm:w-[400px] p-0">
+                        <div className="h-full p-4">
+                            <CartView
+                                cart={cart}
+                                onUpdateQuantity={updateCartQuantity}
+                                onClear={clearCart}
+                                total={cartTotal}
+                                staffRole={staffRole}
                                 orderType={orderType}
                                 onOrderTypeChange={setOrderType}
                                 selectedTable={selectedTable}
                                 onTableChange={setSelectedTable}
+                                onSendToKitchen={() => {
+                                    handleSendToKitchen()
+                                    setIsCartOpen(false)
+                                }}
+                                onCreateUnpaid={() => {
+                                    handleCreateUnpaidOrder()
+                                    setIsCartOpen(false)
+                                }}
+                                onCheckout={() => {
+                                    setIsCheckoutOpen(true)
+                                    setIsCartOpen(false)
+                                }}
+                                processing={processingOrder}
                             />
-                            <Button
-                                className="w-full bg-orange-600 hover:bg-orange-700"
-                                size="lg"
-                                disabled={cart.length === 0 || processingOrder}
-                                onClick={handleSendToKitchen}
-                            >
-                                {processingOrder ? "Sending..." : "Send to Kitchen 🍳"}
-                            </Button>
-                            <Button
-                                className="w-full"
-                                size="lg"
-                                variant="outline"
-                                disabled={cart.length === 0 || processingOrder}
-                                onClick={handleCreateUnpaidOrder}
-                            >
-                                {processingOrder ? "Creating..." : "Create Order (For Cashier)"}
-                            </Button>
-                            <p className="text-xs text-center text-muted-foreground">
-                                Use "Send to Kitchen" for dine-in orders
-                            </p>
                         </div>
-                    ) : (
-                        <Button
-                            className="w-full"
-                            size="lg"
-                            disabled={cart.length === 0}
-                            onClick={() => setIsCheckoutOpen(true)}
-                        >
-                            Checkout
-                        </Button>
-                    )}
-                </div>
+                    </SheetContent>
+                </Sheet>
             </div>
 
             <ItemModifierDialog
