@@ -9,6 +9,12 @@ import { useState } from "react"
 interface WaiterOrderCardProps {
     order: {
         id: string
+        staff_id?: string
+        staff?: {
+            id: string
+            first_name: string | null
+            last_name: string | null
+        } | null
         table_number: string | null
         order_type: string
         status: string
@@ -87,6 +93,11 @@ export function WaiterOrderCard({ order, onSendToCashier }: WaiterOrderCardProps
                         <p className="text-sm text-muted-foreground capitalize">
                             {order.order_type}
                         </p>
+                        {order.staff && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Waiter: {order.staff.first_name || ''} {order.staff.last_name || ''}
+                            </p>
+                        )}
                     </div>
                     <Badge className={`${getStatusColor()} border`}>
                         {getStatusLabel()}

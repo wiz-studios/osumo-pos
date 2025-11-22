@@ -8,10 +8,13 @@ import { useStaffRole } from "@/hooks/use-staff-role"
 import { useToast } from "@/hooks/use-toast"
 import { PendingOrdersQueue } from "@/components/cashier/pending-orders-queue"
 import { PaymentPanel } from "@/components/cashier/payment-panel"
+import { DailySalesStats } from "@/components/cashier/daily-sales-stats"
+import { PaymentHistory } from "@/components/cashier/payment-history"
 import { ReceiptDialog } from "@/components/cashier/receipt-dialog"
 import { generateKRAReceipt, ReceiptData } from "@/lib/receipt-generator"
 import { normalizePhone, isValidKenyanPhone } from "@/lib/phone-utils"
-import { CreditCard } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { CreditCard, History } from "lucide-react"
 
 interface OrderWithItems {
     id: string
@@ -19,6 +22,10 @@ interface OrderWithItems {
     order_type: string
     status: string
     total: number
+    payment_method: string | null
+    payment_details: any
+    paid_at?: string
+    receipt_number?: string | null
     is_prepaid?: boolean
     sent_to_cashier_at: string
     order_items: Array<{
@@ -38,11 +45,14 @@ export default function CashierPage() {
     const { toast } = useToast()
 
     const [pendingOrders, setPendingOrders] = useState<OrderWithItems[]>([])
+    const [dailySales, setDailySales] = useState<OrderWithItems[]>([])
+    const [paymentHistory, setPaymentHistory] = useState<OrderWithItems[]>([])
     const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null)
     const [loading, setLoading] = useState(true)
     const [processing, setProcessing] = useState(false)
     const [receiptData, setReceiptData] = useState<ReceiptData | null>(null)
     const [receiptOpen, setReceiptOpen] = useState(false)
+    const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending')
 
     const isAdmin = role === 'manager' || role === 'admin'
 
@@ -53,10 +63,13 @@ export default function CashierPage() {
         }
     }, [role, roleLoading, router, isAdmin])
 
-    // Fetch pending orders
+    // Fetch data
     useEffect(() => {
         if (staffId && (role === 'cashier' || isAdmin)) {
             fetchPendingOrders()
+            if (isAdmin) {
+                fetchDailySales()
+            }
             const cleanup = setupRealtime()
             return cleanup
         }
@@ -111,6 +124,76 @@ export default function CashierPage() {
             })
         } finally {
             setLoading(false)
+        }
+    }
+
+    const fetchDailySales = async () => {
+        const supabase = getSupabaseClient()
+
+        try {
+            // Get today's paid orders
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+
+            const { data, error } = await supabase
+                .from('orders')
+                .select('id, total, payment_method, status, table_number, order_type, sent_to_cashier_at, order_items(id, quantity, unit_price, subtotal, menu_item:menu_items(name))')
+                .eq('status', 'paid')
+                .gte('paid_at', today.toISOString())
+
+            if (error) throw error
+
+            setDailySales(data as OrderWithItems[])
+        } catch (error: any) {
+            console.error('Error fetching daily sales:', error)
+        }
+    }
+
+    const fetchPaymentHistory = async () => {
+        const supabase = getSupabaseClient()
+
+        try {
+            // Get paid orders from last 24 hours
+            const twentyFourHoursAgo = new Date()
+            twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
+
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`
+                    id,
+                    table_number,
+                    order_type,
+                    status,
+                    total,
+                    payment_method,
+                    payment_details,
+                    paid_at,
+                    receipt_number,
+                    sent_to_cashier_at,
+                    order_items (
+                        id,
+                        quantity,
+                        unit_price,
+                        subtotal,
+                        menu_item:menu_items (
+                            name
+                        )
+                    )
+                `)
+                .eq('status', 'paid')
+                .gte('paid_at', twentyFourHoursAgo.toISOString())
+                .order('paid_at', { ascending: false })
+
+            if (error) throw error
+
+            setPaymentHistory(data as OrderWithItems[])
+        } catch (error: any) {
+            console.error('Error fetching payment history:', error)
+            toast({
+                title: "Error",
+                description: "Failed to load payment history",
+                variant: "destructive"
+            })
         }
     }
 
@@ -347,6 +430,41 @@ export default function CashierPage() {
         }
     }
 
+    const handleReprint = (order: OrderWithItems) => {
+        try {
+            const receipt = generateKRAReceipt(
+                {
+                    id: order.id,
+                    total: order.total,
+                    order_items: order.order_items
+                },
+                {
+                    method: (order.payment_method || 'cash') as 'cash' | 'mpesa',
+                    amount_received: order.payment_details?.amount_received,
+                    change_given: order.payment_details?.change_given,
+                    phone: order.payment_details?.phone_number,
+                    transaction_id: order.payment_details?.transaction_code || order.payment_details?.mpesa_transaction_code
+                },
+                staffName || 'Staff'
+            )
+
+            setReceiptData(receipt)
+            setReceiptOpen(true)
+
+            toast({
+                title: "Receipt Ready",
+                description: "Receipt reprinted successfully"
+            })
+        } catch (error: any) {
+            console.error('Error reprinting receipt:', error)
+            toast({
+                title: "Error",
+                description: "Failed to reprint receipt",
+                variant: "destructive"
+            })
+        }
+    }
+
     if (roleLoading || loading) {
         return (
             <div className="flex items-center justify-center h-screen">
@@ -360,40 +478,80 @@ export default function CashierPage() {
     }
 
     return (
-        <div className="h-screen flex flex-col p-6 gap-6">
+        <div className="h-screen flex flex-col p-4 md:p-6 gap-4 md:gap-6">
             {/* Header */}
             <div className="flex items-center gap-3">
                 <CreditCard className="h-8 w-8 text-primary" />
                 <div>
-                    <h1 className="text-3xl font-bold">Cashier Dashboard</h1>
-                    <p className="text-muted-foreground">
+                    <h1 className="text-2xl md:text-3xl font-bold">Cashier Dashboard</h1>
+                    <p className="text-sm md:text-base text-muted-foreground">
                         {pendingOrders.length} pending {pendingOrders.length === 1 ? 'order' : 'orders'}
                     </p>
                 </div>
             </div>
 
-            {/* Two-Panel Layout */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-5 gap-6 overflow-hidden">
-                {/* Left Panel: Pending Orders Queue (40%) */}
-                <div className="lg:col-span-2 overflow-y-auto">
-                    <h2 className="text-xl font-semibold mb-4">Pending Orders</h2>
-                    <PendingOrdersQueue
-                        orders={pendingOrders}
-                        selectedOrderId={selectedOrder?.id || null}
-                        onSelectOrder={(order) => setSelectedOrder(order as OrderWithItems)}
-                    />
-                </div>
+            {/* Admin Stats */}
+            {isAdmin && dailySales.length >= 0 && (
+                <DailySalesStats orders={dailySales} />
+            )}
 
-                {/* Right Panel: Payment Panel (60%) */}
-                <div className="lg:col-span-3 overflow-y-auto">
-                    <h2 className="text-xl font-semibold mb-4">Payment</h2>
-                    <PaymentPanel
-                        order={selectedOrder}
-                        onCompletePayment={handleCompletePayment}
-                        processing={processing}
+            {/* Main Content */}
+            <Tabs
+                value={activeTab}
+                onValueChange={(v) => {
+                    setActiveTab(v as 'pending' | 'history')
+                    if (v === 'history' && paymentHistory.length === 0) {
+                        fetchPaymentHistory()
+                    }
+                }}
+                className="flex-1 flex flex-col overflow-hidden"
+            >
+                <TabsList>
+                    <TabsTrigger value="pending" className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        Pending Payments
+                    </TabsTrigger>
+                    {isAdmin && (
+                        <TabsTrigger value="history" className="flex items-center gap-2">
+                            <History className="h-4 w-4" />
+                            Payment History
+                        </TabsTrigger>
+                    )}
+                </TabsList>
+
+                {/* Pending Payments Tab */}
+                <TabsContent value="pending" className="flex-1 overflow-hidden mt-4">
+                    <div className="h-full grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6 overflow-hidden">
+                        {/* Left Panel: Pending Orders Queue */}
+                        <div className="lg:col-span-2 overflow-y-auto">
+                            <h2 className="text-lg md:text-xl font-semibold mb-4">Pending Orders</h2>
+                            <PendingOrdersQueue
+                                orders={pendingOrders}
+                                selectedOrderId={selectedOrder?.id || null}
+                                onSelectOrder={(order) => setSelectedOrder(order as OrderWithItems)}
+                            />
+                        </div>
+
+                        {/* Right Panel: Payment Panel */}
+                        <div className="lg:col-span-3 overflow-y-auto">
+                            <h2 className="text-lg md:text-xl font-semibold mb-4">Payment</h2>
+                            <PaymentPanel
+                                order={selectedOrder}
+                                onCompletePayment={handleCompletePayment}
+                                processing={processing}
+                            />
+                        </div>
+                    </div>
+                </TabsContent>
+
+                {/* Payment History Tab (Admin Only) */}
+                <TabsContent value="history" className="flex-1 overflow-hidden mt-4">
+                    <PaymentHistory
+                        orders={paymentHistory}
+                        onReprint={handleReprint}
                     />
-                </div>
-            </div>
+                </TabsContent>
+            </Tabs>
 
             {/* Receipt Dialog */}
             <ReceiptDialog

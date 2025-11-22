@@ -4,13 +4,20 @@ import { useEffect, useState } from "react"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js"
 import { WaiterOrderCard } from "@/components/orders/waiter-order-card"
+import { WaiterPerformanceStats } from "@/components/orders/waiter-performance-stats"
 import { useStaffRole } from "@/hooks/use-staff-role"
 import { useToast } from "@/hooks/use-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ClipboardList } from "lucide-react"
+import { ClipboardList, History } from "lucide-react"
 
 interface OrderWithItems {
   id: string
+  staff_id: string
+  staff?: {
+    id: string
+    first_name: string | null
+    last_name: string | null
+  } | null
   table_number: string | null
   order_type: string
   status: string
@@ -32,8 +39,11 @@ export default function OrdersPage() {
   const { role, staffId, loading: roleLoading } = useStaffRole()
   const { toast } = useToast()
   const [orders, setOrders] = useState<OrderWithItems[]>([])
+  const [historyOrders, setHistoryOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
+  const [historyLoading, setHistoryLoading] = useState(false)
   const [filter, setFilter] = useState<'all' | 'cooking' | 'ready' | 'at_cashier'>('all')
+  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active')
 
   const isAdmin = role === 'manager' || role === 'admin'
 
@@ -57,6 +67,12 @@ export default function OrdersPage() {
         .from('orders')
         .select(`
                     id,
+                    staff_id,
+                    staff:staff!staff_id (
+                        id,
+                        first_name,
+                        last_name
+                    ),
                     table_number,
                     order_type,
                     status,
@@ -95,6 +111,63 @@ export default function OrdersPage() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchOrderHistory = async () => {
+    if (!isAdmin) return // Only admins can view history
+
+    setHistoryLoading(true)
+    const supabase = getSupabaseClient()
+
+    try {
+      // Get orders from last 7 days
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+                    id,
+                    staff_id,
+                    staff:staff!staff_id (
+                        id,
+                        first_name,
+                        last_name
+                    ),
+                    table_number,
+                    order_type,
+                    status,
+                    kitchen_status,
+                    sent_to_kitchen_at,
+                    ready_at,
+                    total,
+                    created_at,
+                    order_items (
+                        id,
+                        quantity,
+                        menu_item:menu_items (
+                            name
+                        )
+                    )
+                `)
+        .in('status', ['paid', 'cancelled', 'completed'])
+        .gte('created_at', sevenDaysAgo.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (error) throw error
+
+      setHistoryOrders(data as OrderWithItems[])
+    } catch (error: any) {
+      console.error('Error fetching order history:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load order history",
+        variant: "destructive"
+      })
+    } finally {
+      setHistoryLoading(false)
     }
   }
 
@@ -211,10 +284,10 @@ export default function OrdersPage() {
     )
   }
 
-  if (role !== 'waiter') {
+  if (role !== 'waiter' && !isAdmin) {
     return (
       <div className="p-6">
-        <p className="text-muted-foreground">This page is only accessible to waiters.</p>
+        <p className="text-muted-foreground">This page is only accessible to waiters and admins.</p>
       </div>
     )
   }
@@ -227,45 +300,101 @@ export default function OrdersPage() {
       <div className="flex items-center gap-3">
         <ClipboardList className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Active Orders</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">
+            {isAdmin ? 'Order Management' : 'Active Orders'}
+          </h1>
           <p className="text-muted-foreground">
             {orders.length} active {orders.length === 1 ? 'order' : 'orders'}
           </p>
         </div>
       </div>
 
-      {/* Filters */}
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-        <TabsList className="w-full justify-start overflow-x-auto h-auto p-1">
-          <TabsTrigger value="all">
-            All ({orders.length})
+      {/* Admin Performance Stats */}
+      {isAdmin && (
+        <WaiterPerformanceStats orders={orders} />
+      )}
+
+      {/* Main Tabs - Active vs History */}
+      <Tabs value={activeTab} onValueChange={(v) => {
+        setActiveTab(v as 'active' | 'history')
+        if (v === 'history' && historyOrders.length === 0) {
+          fetchOrderHistory()
+        }
+      }}>
+        <TabsList>
+          <TabsTrigger value="active" className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4" />
+            Active Orders
           </TabsTrigger>
-          <TabsTrigger value="cooking">
-            Cooking ({orders.filter(o => o.status === 'in_kitchen' && o.kitchen_status !== 'ready').length})
-          </TabsTrigger>
-          <TabsTrigger value="ready">
-            Ready ({orders.filter(o => o.status === 'in_kitchen' && o.kitchen_status === 'ready').length})
-          </TabsTrigger>
-          <TabsTrigger value="at_cashier">
-            Cashier ({orders.filter(o => o.status === 'pending_payment').length})
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="history" className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              Order History
+            </TabsTrigger>
+          )}
         </TabsList>
 
-        <TabsContent value={filter} className="mt-6">
-          {filteredOrders.length > 0 ? (
+        {/* Active Orders Tab */}
+        <TabsContent value="active" className="space-y-4">
+          {/* Status Filters */}
+          <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+            <TabsList className="w-full justify-start overflow-x-auto h-auto p-1">
+              <TabsTrigger value="all">
+                All ({orders.length})
+              </TabsTrigger>
+              <TabsTrigger value="cooking">
+                Cooking ({orders.filter(o => o.status === 'in_kitchen' && o.kitchen_status !== 'ready').length})
+              </TabsTrigger>
+              <TabsTrigger value="ready">
+                Ready ({orders.filter(o => o.status === 'in_kitchen' && o.kitchen_status === 'ready').length})
+              </TabsTrigger>
+              <TabsTrigger value="at_cashier">
+                Cashier ({orders.filter(o => o.status === 'pending_payment').length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value={filter} className="mt-6">
+              {filteredOrders.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredOrders.map(order => (
+                    <WaiterOrderCard
+                      key={order.id}
+                      order={order}
+                      onSendToCashier={handleSendToCashier}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <ClipboardList className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-lg">No orders in this category</p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </TabsContent>
+
+        {/* Order History Tab (Admin Only) */}
+        <TabsContent value="history" className="mt-6">
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-lg">Loading history...</div>
+            </div>
+          ) : historyOrders.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredOrders.map(order => (
+              {historyOrders.map(order => (
                 <WaiterOrderCard
                   key={order.id}
                   order={order}
-                  onSendToCashier={handleSendToCashier}
+                  onSendToCashier={() => { }} // No action for historical orders
                 />
               ))}
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
-              <ClipboardList className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-lg">No orders in this category</p>
+              <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-lg">No order history found</p>
+              <p className="text-sm mt-2">Showing orders from the last 7 days</p>
             </div>
           )}
         </TabsContent>

@@ -67,29 +67,33 @@ export function PendingOrdersQueue({ orders, selectedOrderId, onSelectOrder }: P
                             }`}
                         onClick={() => onSelectOrder(order)}
                     >
-                        <CardContent className="p-4">
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    <h3 className="font-bold text-lg">
-                                        {order.table_number ? `Table ${order.table_number}` : 'TAKEAWAY'}
+                        <CardContent className="p-3 sm:p-4">
+                            <div className="flex justify-between items-start gap-2">
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-bold text-base sm:text-lg truncate">
+                                        {order.table_number 
+                                            ? (order.table_number.toLowerCase().includes('table') 
+                                                ? order.table_number 
+                                                : `Table ${order.table_number}`)
+                                            : 'TAKEAWAY'}
                                     </h3>
-                                    <p className="text-sm text-muted-foreground capitalize">
+                                    <p className="text-xs sm:text-sm text-muted-foreground capitalize">
                                         {order.order_type}
                                     </p>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-2xl font-bold text-primary">
+                                <div className="text-right flex-shrink-0">
+                                    <p className="text-lg sm:text-2xl font-bold text-primary">
                                         KES {order.total.toFixed(2)}
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="mt-3 flex items-center justify-between text-sm">
+                            <div className="mt-2 sm:mt-3 flex items-center justify-between text-xs sm:text-sm">
                                 <span className="text-muted-foreground">
                                     {order.order_items.length} item{order.order_items.length !== 1 ? 's' : ''}
                                 </span>
                                 <div className={`flex items-center gap-1 ${urgent ? 'text-orange-600 font-semibold' : 'text-muted-foreground'}`}>
-                                    <Clock className="h-4 w-4" />
+                                    <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
                                     <span>{getWaitTime(order.sent_to_cashier_at)}</span>
                                 </div>
                             </div>

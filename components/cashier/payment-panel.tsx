@@ -39,8 +39,8 @@ export function PaymentPanel({ order, onCompletePayment, processing }: PaymentPa
     if (!order) {
         return (
             <Card className="h-full flex items-center justify-center">
-                <CardContent className="text-center text-muted-foreground">
-                    <p className="text-lg">Select an order to process payment</p>
+                <CardContent className="text-center text-muted-foreground p-4 sm:p-6">
+                    <p className="text-sm sm:text-lg">Select an order to process payment</p>
                 </CardContent>
             </Card>
         )
@@ -80,26 +80,26 @@ export function PaymentPanel({ order, onCompletePayment, processing }: PaymentPa
 
     return (
         <Card className="h-full flex flex-col">
-            <CardHeader>
-                <CardTitle className="flex justify-between items-center">
-                    <span>{order.table_number ? `Table ${order.table_number}` : 'TAKEAWAY'}</span>
-                    <span className="text-sm font-normal text-muted-foreground capitalize">
+            <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="flex justify-between items-center text-base sm:text-lg">
+                    <span className="truncate">{order.table_number ? `Table ${order.table_number}` : 'TAKEAWAY'}</span>
+                    <span className="text-xs sm:text-sm font-normal text-muted-foreground capitalize ml-2">
                         {order.order_type}
                     </span>
                 </CardTitle>
             </CardHeader>
 
-            <CardContent className="flex-1 space-y-4">
+            <CardContent className="flex-1 space-y-3 sm:space-y-4 p-3 sm:p-6">
                 {/* Order Items */}
-                <div className="space-y-2">
-                    <h3 className="font-semibold">Items</h3>
-                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                <div className="space-y-1 sm:space-y-2">
+                    <h3 className="font-semibold text-sm sm:text-base">Items</h3>
+                    <div className="space-y-1 max-h-32 sm:max-h-40 overflow-y-auto">
                         {order.order_items.map((item) => (
-                            <div key={item.id} className="flex justify-between text-sm">
-                                <span>
+                            <div key={item.id} className="flex justify-between text-xs sm:text-sm gap-2">
+                                <span className="truncate">
                                     {item.quantity}× {item.menu_item?.name || 'Unknown Item'}
                                 </span>
-                                <span className="font-medium">
+                                <span className="font-medium flex-shrink-0">
                                     KES {item.subtotal.toFixed(2)}
                                 </span>
                             </div>
@@ -111,15 +111,15 @@ export function PaymentPanel({ order, onCompletePayment, processing }: PaymentPa
 
                 {/* Totals */}
                 <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-muted-foreground">Taxable Amount:</span>
                         <span>KES {taxableAmount.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-muted-foreground">VAT (16%):</span>
                         <span>KES {vatAmount.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-lg font-bold pt-2 border-t">
+                    <div className="flex justify-between text-base sm:text-lg font-bold pt-2 border-t">
                         <span>TOTAL:</span>
                         <span className="text-primary">KES {order.total.toFixed(2)}</span>
                     </div>
@@ -128,25 +128,25 @@ export function PaymentPanel({ order, onCompletePayment, processing }: PaymentPa
                 <Separator />
 
                 {/* Payment Method */}
-                <div className="space-y-3">
-                    <Label>Payment Method</Label>
+                <div className="space-y-2 sm:space-y-3">
+                    <Label className="text-sm sm:text-base">Payment Method</Label>
                     <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'cash' | 'mpesa')}>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="mpesa" id="mpesa" />
-                            <Label htmlFor="mpesa" className="cursor-pointer">M-Pesa</Label>
+                        <div className="flex items-center space-x-2 py-1">
+                            <RadioGroupItem value="mpesa" id="mpesa" className="h-5 w-5" />
+                            <Label htmlFor="mpesa" className="cursor-pointer text-sm sm:text-base">M-Pesa</Label>
                         </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="cash" id="cash" />
-                            <Label htmlFor="cash" className="cursor-pointer">Cash</Label>
+                        <div className="flex items-center space-x-2 py-1">
+                            <RadioGroupItem value="cash" id="cash" className="h-5 w-5" />
+                            <Label htmlFor="cash" className="cursor-pointer text-sm sm:text-base">Cash</Label>
                         </div>
                     </RadioGroup>
                 </div>
 
                 {/* Payment Forms */}
                 {paymentMethod === 'cash' ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                         <div>
-                            <Label htmlFor="amount">Amount Received</Label>
+                            <Label htmlFor="amount" className="text-sm sm:text-base">Amount Received</Label>
                             <Input
                                 id="amount"
                                 type="number"
@@ -154,14 +154,14 @@ export function PaymentPanel({ order, onCompletePayment, processing }: PaymentPa
                                 placeholder="0.00"
                                 value={amountReceived}
                                 onChange={(e) => setAmountReceived(e.target.value)}
-                                className="text-lg"
+                                className="text-base sm:text-lg h-10 sm:h-11"
                             />
                         </div>
                         {amountReceived && (
-                            <div className="p-3 bg-muted rounded-md">
+                            <div className="p-2 sm:p-3 bg-muted rounded-md">
                                 <div className="flex justify-between items-center">
-                                    <span className="font-semibold">Change:</span>
-                                    <span className="text-xl font-bold text-green-600">
+                                    <span className="font-semibold text-sm sm:text-base">Change:</span>
+                                    <span className="text-lg sm:text-xl font-bold text-green-600">
                                         KES {calculateChange().toFixed(2)}
                                     </span>
                                 </div>
@@ -169,31 +169,32 @@ export function PaymentPanel({ order, onCompletePayment, processing }: PaymentPa
                         )}
                     </div>
                 ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                         <div>
-                            <Label htmlFor="phone">Phone Number</Label>
+                            <Label htmlFor="phone" className="text-sm sm:text-base">Phone Number</Label>
                             <Input
                                 id="phone"
                                 type="tel"
                                 placeholder="0712345678"
                                 value={phoneNumber}
                                 onChange={(e) => setPhoneNumber(e.target.value)}
+                                className="h-10 sm:h-11"
                             />
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                                 Format: 07XX, 01XX, or 254XX
                             </p>
                         </div>
                         <div>
-                            <Label htmlFor="txn">M-Pesa Transaction Code</Label>
+                            <Label htmlFor="txn" className="text-sm sm:text-base">M-Pesa Transaction Code</Label>
                             <Input
                                 id="txn"
                                 type="text"
                                 placeholder="ABC123XYZ"
                                 value={transactionCode}
                                 onChange={(e) => setTransactionCode(e.target.value.toUpperCase())}
-                                className="uppercase"
+                                className="uppercase h-10 sm:h-11"
                             />
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                                 6-12 alphanumeric characters
                             </p>
                         </div>
@@ -201,9 +202,9 @@ export function PaymentPanel({ order, onCompletePayment, processing }: PaymentPa
                 )}
             </CardContent>
 
-            <CardFooter>
+            <CardFooter className="p-3 sm:p-6">
                 <Button
-                    className="w-full h-12 text-lg"
+                    className="w-full h-11 sm:h-12 text-base sm:text-lg"
                     onClick={handleSubmit}
                     disabled={!isValid() || processing}
                 >
