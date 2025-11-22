@@ -35,23 +35,25 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'cooking' | 'ready' | 'at_cashier'>('all')
 
+  const isAdmin = role === 'manager' || role === 'admin'
+
   useEffect(() => {
-    if (!roleLoading && role !== 'waiter') {
-      // Non-waiters see a different view or get redirected
+    if (!roleLoading && role !== 'waiter' && !isAdmin) {
+      // Non-waiters/admins see a different view or get redirected
       return
     }
 
-    if (staffId) {
+    if (staffId || isAdmin) {
       fetchOrders()
       setupRealtime()
     }
-  }, [staffId, roleLoading, role])
+  }, [staffId, roleLoading, role, isAdmin])
 
   const fetchOrders = async () => {
     const supabase = getSupabaseClient()
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('orders')
         .select(`
                     id,
@@ -73,6 +75,13 @@ export default function OrdersPage() {
                 `)
         .in('status', ['in_kitchen', 'pending_payment'])
         .order('sent_to_kitchen_at', { ascending: false })
+
+      // Filter by staff_id only for waiters (not admins)
+      if (role === 'waiter' && staffId && !isAdmin) {
+        query = query.eq('staff_id', staffId)
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
 

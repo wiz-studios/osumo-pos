@@ -1,11 +1,11 @@
 "use client"
 
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
-import { Clock, ChefHat, CheckCircle2 } from "lucide-react"
-import { useState } from "react"
+import { Clock, Play, Check, AlertTriangle, Flame } from "lucide-react"
+import { useState, useEffect } from "react"
+import { cn } from "@/lib/utils"
 
 interface KitchenOrderCardProps {
     order: {
@@ -30,12 +30,32 @@ interface KitchenOrderCardProps {
 export function KitchenOrderCard({ order, onUpdate }: KitchenOrderCardProps) {
     const { toast } = useToast()
     const [updating, setUpdating] = useState(false)
+    const [elapsedMinutes, setElapsedMinutes] = useState(0)
 
-    const statusColors = {
-        new: "bg-yellow-500 border-yellow-600 text-slate-900",
-        preparing: "bg-green-500 border-green-600 text-white",
-        ready: "bg-white border-slate-300 text-slate-900"
+    // Calculate elapsed time every minute
+    useEffect(() => {
+        const calculateTime = () => {
+            const sentTime = new Date(order.sent_to_kitchen_at).getTime()
+            const now = new Date().getTime()
+            const diff = Math.floor((now - sentTime) / 60000)
+            setElapsedMinutes(diff)
+        }
+
+        calculateTime()
+        const interval = setInterval(calculateTime, 60000) // Update every minute
+
+        return () => clearInterval(interval)
+    }, [order.sent_to_kitchen_at])
+
+    // Determine urgency color and icon
+    const getUrgency = () => {
+        if (order.kitchen_status === 'ready') return { color: "text-slate-500", icon: Check }
+        if (elapsedMinutes < 5) return { color: "text-green-400", icon: Clock }
+        if (elapsedMinutes < 10) return { color: "text-yellow-400", icon: Clock }
+        return { color: "text-red-500 animate-pulse", icon: Flame }
     }
+
+    const { color: urgencyColor, icon: UrgencyIcon } = getUrgency()
 
     const updateStatus = async (newStatus: 'preparing' | 'ready') => {
         setUpdating(true)
@@ -80,100 +100,75 @@ export function KitchenOrderCard({ order, onUpdate }: KitchenOrderCardProps) {
         }
     }
 
-    const formatTime = (timestamp: string) => {
-        return new Date(timestamp).toLocaleTimeString('en-KE', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        })
-    }
-
-    const getTimeElapsed = (timestamp: string) => {
-        const now = new Date()
-        const sent = new Date(timestamp)
-        const diffMs = now.getTime() - sent.getTime()
-        const diffMins = Math.floor(diffMs / 60000)
-
-        if (diffMins < 1) return "Just now"
-        if (diffMins < 60) return `${diffMins}m ago`
-        const hours = Math.floor(diffMins / 60)
-        const mins = diffMins % 60
-        return `${hours}h ${mins}m ago`
-    }
+    // Format Table Name
+    const tableName = order.order_type === 'takeaway'
+        ? `Takeaway #${order.table_number || '?'}`
+        : (String(order.table_number).toLowerCase().startsWith('table')
+            ? order.table_number
+            : `Table ${order.table_number}`)
 
     return (
-        <Card className={`${statusColors[order.kitchen_status]} border-4 shadow-lg`}>
-            <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <h2 className="text-4xl font-bold">
-                            {order.table_number || 'TAKEAWAY'}
-                        </h2>
-                        <div className="flex items-center gap-2 mt-2 text-lg opacity-80">
-                            <Clock className="h-5 w-5" />
-                            <span className="font-mono">{formatTime(order.sent_to_kitchen_at)}</span>
-                            <span className="text-sm">({getTimeElapsed(order.sent_to_kitchen_at)})</span>
-                        </div>
-                    </div>
-                    <div className="text-right">
-                        <span className="text-sm font-semibold uppercase px-3 py-1 rounded-full bg-black/20">
-                            {order.kitchen_status}
-                        </span>
-                        <div className="text-xs mt-1 opacity-70">
-                            {order.order_items.length} {order.order_items.length === 1 ? 'item' : 'items'}
-                        </div>
+        <div className="group flex flex-col p-3 bg-[#1A1A2E] border-l-4 border-l-transparent hover:border-l-blue-500 rounded-r-lg transition-all duration-200 mb-2 last:mb-0 hover:bg-[#222236]">
+            <div className="flex items-start justify-between gap-3">
+                {/* Left: Table Info */}
+                <div className="min-w-[80px]">
+                    <h3 className="text-white font-bold text-sm leading-tight">{tableName}</h3>
+                    <span className="text-xs text-slate-500 font-mono mt-1 block">
+                        #{order.id.slice(0, 4)}
+                    </span>
+                </div>
+
+                {/* Middle: Items List */}
+                <div className="flex-1">
+                    <div className="flex flex-wrap gap-x-3 gap-y-1">
+                        {order.order_items.map((item) => (
+                            <div key={item.id} className="flex items-baseline gap-1 text-sm">
+                                <span className="font-bold text-orange-400">{item.quantity}x</span>
+                                <span className="text-slate-300">{item.menu_item.name}</span>
+                                {item.notes && (
+                                    <span className="text-xs text-yellow-500/80 italic">({item.notes})</span>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
-            </CardHeader>
 
-            <CardContent className="pb-4">
-                <ul className="space-y-4">
-                    {order.order_items.map((item) => (
-                        <li key={item.id} className="text-2xl leading-tight">
-                            <div className="font-bold flex items-baseline gap-2">
-                                <span className="text-3xl">{item.quantity}×</span>
-                                <span>{item.menu_item?.name || 'Unknown Item'}</span>
-                            </div>
-                            {item.notes && (
-                                <div className="text-lg opacity-75 ml-10 mt-1 italic border-l-2 border-current pl-3">
-                                    → {item.notes}
-                                </div>
-                            )}
-                        </li>
-                    ))}
-                </ul>
-            </CardContent>
-
-            <CardFooter className="gap-3 pt-4 border-t-2 border-current/20">
-                {order.kitchen_status === 'new' && (
-                    <Button
-                        size="lg"
-                        className="flex-1 text-xl h-16 bg-green-600 hover:bg-green-700 text-white font-bold"
-                        onClick={() => updateStatus('preparing')}
-                        disabled={updating}
-                    >
-                        <ChefHat className="h-6 w-6 mr-2" />
-                        {updating ? "Updating..." : "Start Cooking"}
-                    </Button>
-                )}
-                {order.kitchen_status === 'preparing' && (
-                    <Button
-                        size="lg"
-                        className="flex-1 text-xl h-16 bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                        onClick={() => updateStatus('ready')}
-                        disabled={updating}
-                    >
-                        <CheckCircle2 className="h-6 w-6 mr-2" />
-                        {updating ? "Updating..." : "Mark Ready ✓"}
-                    </Button>
-                )}
-                {order.kitchen_status === 'ready' && (
-                    <div className="flex-1 text-center text-xl font-bold opacity-60 py-4">
-                        <CheckCircle2 className="h-8 w-8 mx-auto mb-2" />
-                        READY FOR PICKUP
+                {/* Right: Time & Action */}
+                <div className="flex items-center gap-3 min-w-[100px] justify-end">
+                    {/* Time */}
+                    <div className={cn("flex items-center gap-1.5 text-xs font-medium", urgencyColor)}>
+                        <UrgencyIcon className="h-3.5 w-3.5" />
+                        <span>{elapsedMinutes}m</span>
                     </div>
-                )}
-            </CardFooter>
-        </Card>
+
+                    {/* Action Button */}
+                    {order.kitchen_status === 'new' && (
+                        <Button
+                            size="icon"
+                            className="h-9 w-9 rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20"
+                            onClick={() => updateStatus('preparing')}
+                            disabled={updating}
+                        >
+                            <Play className="h-4 w-4 fill-current" />
+                        </Button>
+                    )}
+                    {order.kitchen_status === 'preparing' && (
+                        <Button
+                            size="icon"
+                            className="h-9 w-9 rounded-full bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-900/20"
+                            onClick={() => updateStatus('ready')}
+                            disabled={updating}
+                        >
+                            <Check className="h-5 w-5" strokeWidth={3} />
+                        </Button>
+                    )}
+                    {order.kitchen_status === 'ready' && (
+                        <div className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center">
+                            <Check className="h-5 w-5 text-slate-600" />
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
     )
 }

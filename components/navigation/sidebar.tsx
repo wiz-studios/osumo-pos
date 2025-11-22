@@ -106,7 +106,11 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
     window.location.href = "/auth/login"
   }
 
-  const visibleItems = menuItems.filter((item) => !role || item.roles.includes(role))
+  const visibleItems = menuItems.filter((item) => {
+    const normalizedRole = role?.toLowerCase()
+    if (normalizedRole === 'admin') return true
+    return !normalizedRole || item.roles.includes(normalizedRole)
+  })
 
   return (
     <div className={cn("w-64 border-r border-border bg-card p-4 flex flex-col", className)}>

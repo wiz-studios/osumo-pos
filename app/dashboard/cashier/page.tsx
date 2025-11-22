@@ -44,21 +44,23 @@ export default function CashierPage() {
     const [receiptData, setReceiptData] = useState<ReceiptData | null>(null)
     const [receiptOpen, setReceiptOpen] = useState(false)
 
+    const isAdmin = role === 'manager' || role === 'admin'
+
     // Role-based access control
     useEffect(() => {
-        if (!roleLoading && role !== 'cashier') {
+        if (!roleLoading && role !== 'cashier' && !isAdmin) {
             router.push('/unauthorized')
         }
-    }, [role, roleLoading, router])
+    }, [role, roleLoading, router, isAdmin])
 
     // Fetch pending orders
     useEffect(() => {
-        if (staffId && role === 'cashier') {
+        if (staffId && (role === 'cashier' || isAdmin)) {
             fetchPendingOrders()
             const cleanup = setupRealtime()
             return cleanup
         }
-    }, [staffId, role])
+    }, [staffId, role, isAdmin])
 
     const fetchPendingOrders = async () => {
         const supabase = getSupabaseClient()
@@ -353,7 +355,7 @@ export default function CashierPage() {
         )
     }
 
-    if (role !== 'cashier') {
+    if (role !== 'cashier' && !isAdmin) {
         return null  // Will redirect via useEffect
     }
 
