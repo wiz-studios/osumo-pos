@@ -1,7 +1,7 @@
-\"use client\"
+"use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from \"@/components/ui/card\"
-import { Users, Clock, TrendingUp } from \"lucide-react\"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Users, Clock, TrendingUp } from "lucide-react"
 
 interface WaiterStats {
     waiterId: string
