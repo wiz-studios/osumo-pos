@@ -19,6 +19,7 @@ interface OrderWithItems {
     order_type: string
     status: string
     total: number
+    is_prepaid?: boolean
     sent_to_cashier_at: string
     order_items: Array<{
         id: string
@@ -71,6 +72,7 @@ export default function CashierPage() {
                     order_type,
                     status,
                     total,
+                    is_prepaid,
                     sent_to_cashier_at,
                     order_items (
                         id,
@@ -244,39 +246,46 @@ export default function CashierPage() {
             const receiptData = generateKRAReceipt(selectedOrder, paymentDetails, staffName || undefined)
 
             // 4. Update order with payment + receipt snapshot (with double-payment prevention)
+            const updatePayload: any = {
+                status: selectedOrder.is_prepaid ? 'in_kitchen' : 'paid',
+                payment_status: 'paid',
+                payment_method: paymentMethod,
+                cashier_id: staffId,
+                paid_at: new Date().toISOString(),
+                payment_details: paymentDetails,
+                // If prepaid, send to kitchen
+                ...(selectedOrder.is_prepaid && {
+                    kitchen_status: 'new',
+                    sent_to_kitchen_at: new Date().toISOString()
+                }),
+                // 🧾 RECEIPT STORAGE (Immutable, KRA-compliant)
+                receipt_number: receiptData.receiptNumber,
+                receipt_generated_at: new Date().toISOString(),
+                receipt_data: {
+                    // Complete snapshot for retrieval
+                    receiptNumber: receiptData.receiptNumber,
+                    orderNumber: receiptData.orderNumber,
+                    date: receiptData.date,
+                    time: receiptData.time,
+                    cashier: receiptData.cashier,
+                    items: receiptData.items,
+                    taxableAmount: receiptData.taxableAmount,
+                    vatAmount: receiptData.vatAmount,
+                    total: receiptData.total,
+                    paymentMethod: receiptData.paymentMethod,
+                    paymentDetails: receiptData.paymentDetails,
+                    qrCode: receiptData.qrCode,
+                    // Additional metadata for compliance
+                    businessName: 'OSUMO',
+                    kraPin: 'P051234567X',
+                    orderType: selectedOrder.order_type,
+                    tableNumber: selectedOrder.table_number
+                }
+            }
+
             const { error: updateError } = await supabase
                 .from('orders')
-                .update({
-                    status: 'paid',
-                    payment_status: 'paid',
-                    payment_method: paymentMethod,
-                    cashier_id: staffId,
-                    paid_at: new Date().toISOString(),
-                    payment_details: paymentDetails,
-                    // 🧾 RECEIPT STORAGE (Immutable, KRA-compliant)
-                    receipt_number: receiptData.receiptNumber,
-                    receipt_generated_at: new Date().toISOString(),
-                    receipt_data: {
-                        // Complete snapshot for retrieval
-                        receiptNumber: receiptData.receiptNumber,
-                        orderNumber: receiptData.orderNumber,
-                        date: receiptData.date,
-                        time: receiptData.time,
-                        cashier: receiptData.cashier,
-                        items: receiptData.items,
-                        taxableAmount: receiptData.taxableAmount,
-                        vatAmount: receiptData.vatAmount,
-                        total: receiptData.total,
-                        paymentMethod: receiptData.paymentMethod,
-                        paymentDetails: receiptData.paymentDetails,
-                        qrCode: receiptData.qrCode,
-                        // Additional metadata for compliance
-                        businessName: 'OSUMO',
-                        kraPin: 'P051234567X',
-                        orderType: selectedOrder.order_type,
-                        tableNumber: selectedOrder.table_number
-                    }
-                })
+                .update(updatePayload)
                 .eq('id', selectedOrder.id)
                 .eq('status', 'pending_payment')  // 🔒 CRITICAL: Prevents double-payment
 
@@ -291,14 +300,15 @@ export default function CashierPage() {
                 .insert({
                     order_id: selectedOrder.id,
                     from_status: 'pending_payment',
-                    to_status: 'paid',
+                    to_status: selectedOrder.is_prepaid ? 'in_kitchen' : 'paid',
                     triggered_by: staffId,
                     event_type: 'payment',
                     metadata: {
                         payment_method: paymentMethod,
                         amount: selectedOrder.total,
                         receipt_number: receiptData.receiptNumber,
-                        timestamp: new Date().toISOString()
+                        timestamp: new Date().toISOString(),
+                        is_prepaid: selectedOrder.is_prepaid
                         // 🔒 Security: Never log full TXN IDs or phone numbers
                     }
                 })

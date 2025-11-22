@@ -15,6 +15,7 @@ import { ItemModifierDialog } from "@/components/pos/item-modifier-dialog"
 import { CheckoutDialog } from "@/components/pos/checkout-dialog"
 import { ReceiptDialog } from "@/components/pos/receipt-dialog"
 import { TableSelector } from "@/components/pos/table-selector"
+import { OrderSuccessDialog } from "@/components/pos/order-success-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { CartView } from "@/components/pos/cart-view"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -51,9 +52,21 @@ export default function POSPage() {
     const [lastOrder, setLastOrder] = useState<Order | null>(null)
     const [lastOrderItems, setLastOrderItems] = useState<OrderItem[]>([])
 
+    // Success dialog state
+    const [isSuccessOpen, setIsSuccessOpen] = useState(false)
+    const [successData, setSuccessData] = useState<{
+        orderType: 'kitchen' | 'cashier'
+        orderRef?: string
+        tableOrType?: string
+        itemCount?: number
+        total?: number
+    } | null>(null)
+
     // Table selection state (for Send to Kitchen)
     const [orderType, setOrderType] = useState<'dine-in' | 'takeaway'>('dine-in')
     const [selectedTable, setSelectedTable] = useState<string>('')
+    const [isPrepaid, setIsPrepaid] = useState(false) // Payment before kitchen preparation
+
 
 
     // Cart is now memory-only (no localStorage persistence)
@@ -188,9 +201,10 @@ export default function POSPage() {
                 .insert({
                     restaurant_id: restaurantId,
                     staff_id: staffId,
-                    order_type: "dine-in", // Default, can be updated later
+                    order_type: orderType === 'dine-in' ? 'dine-in' : 'takeaway',
                     status: "pending_payment",
                     payment_status: "unpaid",
+                    is_prepaid: isPrepaid,
                     sent_to_cashier_at: new Date().toISOString(),
                     total: cartTotal,
                 })
@@ -223,6 +237,15 @@ export default function POSPage() {
                 total: order.total,
                 sent_to_cashier_at: order.sent_to_cashier_at
             })
+
+            // Show success dialog
+            setSuccessData({
+                orderType: 'cashier',
+                tableOrType: 'For Cashier',
+                itemCount: cart.length,
+                total: cartTotal
+            })
+            setIsSuccessOpen(true)
 
             toast({
                 title: "✅ Order Created Successfully!",
@@ -278,6 +301,7 @@ export default function POSPage() {
                     status: "in_kitchen",
                     kitchen_status: "new",
                     payment_status: "unpaid",
+                    is_prepaid: false, // Direct to kitchen is never prepaid
                     sent_to_kitchen_at: new Date().toISOString(),
                     total: cartTotal
                 })
@@ -317,8 +341,31 @@ export default function POSPage() {
                 }
             })
 
+            console.log('🍳 Order sent to kitchen successfully:', {
+                orderId: order.id,
+                orderRef: `#K${order.id.slice(0, 4).toUpperCase()}`,
+                status: order.status,
+                kitchen_status: order.kitchen_status,
+                payment_status: order.payment_status,
+                order_type: order.order_type,
+                table: selectedTable,
+                total: order.total,
+                sent_to_kitchen_at: order.sent_to_kitchen_at
+            })
+
             // Success feedback with order reference
             const orderRef = `#K${order.id.slice(0, 4).toUpperCase()}`
+
+            // Show success dialog
+            setSuccessData({
+                orderType: 'kitchen',
+                orderRef: orderRef,
+                tableOrType: orderType === 'dine-in' ? selectedTable : 'Takeaway',
+                itemCount: cart.length,
+                total: cartTotal
+            })
+            setIsSuccessOpen(true)
+
             toast({
                 title: "🍳 Order Sent to Kitchen!",
                 description: `Order ${orderRef} for ${orderType === 'dine-in' ? selectedTable : 'Takeaway'} • ${cart.length} item${cart.length > 1 ? 's' : ''}`,
@@ -622,6 +669,8 @@ export default function POSPage() {
                     onOrderTypeChange={setOrderType}
                     selectedTable={selectedTable}
                     onTableChange={setSelectedTable}
+                    isPrepaid={isPrepaid}
+                    onIsPrepaidChange={setIsPrepaid}
                     onSendToKitchen={handleSendToKitchen}
                     onCreateUnpaid={handleCreateUnpaidOrder}
                     onCheckout={() => setIsCheckoutOpen(true)}
@@ -659,6 +708,8 @@ export default function POSPage() {
                                 onOrderTypeChange={setOrderType}
                                 selectedTable={selectedTable}
                                 onTableChange={setSelectedTable}
+                                isPrepaid={isPrepaid}
+                                onIsPrepaidChange={setIsPrepaid}
                                 onSendToKitchen={() => {
                                     handleSendToKitchen()
                                     setIsCartOpen(false)
@@ -700,6 +751,16 @@ export default function POSPage() {
                 order={lastOrder}
                 items={lastOrderItems}
                 onClose={() => setIsReceiptOpen(false)}
+            />
+
+            <OrderSuccessDialog
+                open={isSuccessOpen}
+                onOpenChange={setIsSuccessOpen}
+                orderType={successData?.orderType || 'kitchen'}
+                orderRef={successData?.orderRef}
+                tableOrType={successData?.tableOrType}
+                itemCount={successData?.itemCount}
+                total={successData?.total}
             />
         </div>
     )

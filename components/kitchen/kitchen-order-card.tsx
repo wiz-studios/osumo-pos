@@ -47,6 +47,12 @@ export function KitchenOrderCard({ order, onUpdate }: KitchenOrderCardProps) {
             // Set ready_at timestamp when marking as ready
             if (newStatus === 'ready') {
                 updateData.ready_at = new Date().toISOString()
+
+                // If dine-in, send to cashier for payment
+                if (order.order_type === 'dine-in') {
+                    updateData.status = 'pending_payment'
+                    updateData.sent_to_cashier_at = new Date().toISOString()
+                }
             }
 
             const { error } = await supabase
