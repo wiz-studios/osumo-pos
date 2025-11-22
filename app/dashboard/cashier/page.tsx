@@ -91,7 +91,7 @@ export default function CashierPage() {
 
             console.log('📋 Cashier fetched pending orders:', {
                 count: data?.length || 0,
-                orders: data?.map(o => ({
+                orders: data?.map((o: any) => ({
                     id: o.id,
                     status: o.status,
                     total: o.total,

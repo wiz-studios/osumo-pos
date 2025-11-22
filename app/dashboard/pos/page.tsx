@@ -594,14 +594,14 @@ export default function POSPage() {
                 </div>
 
                 {/* Categories */}
-                <ScrollArea className="w-full whitespace-nowrap pb-2">
-                    <div className="flex w-max space-x-2 p-1">
+                <ScrollArea horizontal className="w-full whitespace-nowrap pb-4">
+                    <div className="flex w-max space-x-2 px-1">
                         {categories.map((category) => (
                             <Button
                                 key={category.id}
                                 variant={activeCategory === category.id ? "default" : "outline"}
                                 onClick={() => setActiveCategory(category.id)}
-                                className="rounded-full"
+                                className="rounded-full shrink-0"
                             >
                                 {category.name}
                             </Button>
