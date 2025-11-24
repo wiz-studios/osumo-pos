@@ -1,3 +1,5 @@
+"use client"
+
 import { AddMenuItemDialog } from "@/components/menu/add-menu-item-dialog"
 import { EditMenuItemDialog } from "@/components/menu/edit-menu-item-dialog"
 import type { MenuCategory, MenuItem } from "@/lib/types"
