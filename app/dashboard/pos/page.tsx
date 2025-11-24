@@ -570,7 +570,9 @@ export default function POSPage() {
 
     const filteredItems = items.filter(item => {
         const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesCategory = activeCategory ? item.category_id === activeCategory : true
+        // If searching, show all matching items regardless of category
+        // If not searching, filter by active category
+        const matchesCategory = searchQuery ? true : (activeCategory ? item.category_id === activeCategory : true)
         return matchesSearch && matchesCategory
     })
 

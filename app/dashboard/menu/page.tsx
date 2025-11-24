@@ -280,7 +280,7 @@ export default function MenuPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredItems
-                  .filter((item) => item.category_id === category.id)
+                  .filter((item) => searchQuery ? true : item.category_id === category.id)
                   .map((item) => (
                     <Card key={item.id} className={`relative ${!item.available ? 'opacity-60' : ''}`}>
                       {item.image_url && (
