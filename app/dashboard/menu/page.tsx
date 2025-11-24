@@ -1,13 +1,3 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { getSupabaseClient } from "@/lib/supabase/client"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Circle, Plus, Edit2, Trash2, MoveVertical, Eye, EyeOff } from "lucide-react"
-import Image from "next/image"
 import { AddMenuItemDialog } from "@/components/menu/add-menu-item-dialog"
 import { EditMenuItemDialog } from "@/components/menu/edit-menu-item-dialog"
 import type { MenuCategory, MenuItem } from "@/lib/types"
@@ -282,61 +272,12 @@ export default function MenuPage() {
                 {filteredItems
                   .filter((item) => searchQuery ? true : item.category_id === category.id)
                   .map((item) => (
-                    <Card key={item.id} className={`relative ${!item.available ? 'opacity-60' : ''}`}>
-                      {item.image_url && (
-                        <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
-                          <Image
-                            src={item.image_url}
-                            alt={item.name}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          />
-                        </div>
-                      )}
-                      <CardHeader className="pb-3">
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <CardTitle className="text-lg">{item.name}</CardTitle>
-                              {item.is_daily_special && (
-                                <Badge variant="destructive" className="text-[10px] h-5">Special</Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
-                          </div>
-                          <Circle
-                            size={12}
-                            className={`mt-1 ${item.available ? "fill-green-500 text-green-500" : "fill-gray-400 text-gray-400"}`}
-                          />
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-lg">KES {item.price}</span>
-                          {item.prep_time_minutes > 0 && (
-                            <span className="text-xs text-muted-foreground">{item.prep_time_minutes}min</span>
-                          )}
-                        </div>
-                        <div className="flex gap-1 flex-wrap">
-                          {item.is_vegan && (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Vegan</span>
-                          )}
-                          {item.is_spicy && (
-                            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">Spicy</span>
-                          )}
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full gap-2"
-                          onClick={() => setEditingItem(item)}
-                        >
-                          <Edit2 className="h-3 w-3" />
-                          Edit Item
-                        </Button>
-                      </CardContent>
-                    </Card>
+                    <ModernMenuCard
+                      key={item.id}
+                      item={item}
+                      onClick={() => setEditingItem(item)}
+                      isAdmin={true}
+                    />
                   ))}
 
                 {filteredItems.filter((item) => item.category_id === category.id).length === 0 && (

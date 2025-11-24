@@ -18,6 +18,7 @@ import { TableSelector } from "@/components/pos/table-selector"
 import { OrderSuccessDialog } from "@/components/pos/order-success-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { CartView } from "@/components/pos/cart-view"
+import { ModernMenuCard } from "@/components/pos/modern-menu-card"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 interface CartItem {
@@ -614,45 +615,14 @@ export default function POSPage() {
                 {/* Items Grid */}
                 <div className="flex-1 overflow-hidden">
                     <ScrollArea className="h-full">
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-4 pr-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 pb-4 pr-4">
                             {filteredItems.map((item) => (
-                                <Card
+                                <ModernMenuCard
                                     key={item.id}
-                                    className="cursor-pointer hover:bg-accent transition-colors active:scale-95 overflow-hidden"
-                                    onClick={() => handleItemClick(item)}
-                                >
-                                    {item.image_url && (
-                                        <div className="relative w-full h-32 overflow-hidden">
-                                            <Image
-                                                src={item.image_url}
-                                                alt={item.name}
-                                                fill
-                                                className="object-cover"
-                                                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                                            />
-                                        </div>
-                                    )}
-                                    <CardContent className={`p-4 flex flex-col justify-between ${item.image_url ? 'h-24' : 'h-32'}`}>
-                                        <div>
-                                            <h3 className="font-bold leading-tight line-clamp-2">{item.name}</h3>
-                                            {item.is_daily_special && (
-                                                <Badge variant="destructive" className="mt-1 text-[10px] px-1 py-0">Special</Badge>
-                                            )}
-                                        </div>
-                                        <div className="flex justify-between items-end">
-                                            <span className="font-semibold text-lg">KES {item.price}</span>
-                                            {item.prep_time_minutes > 0 && (
-                                                <span className="text-xs text-muted-foreground">{item.prep_time_minutes}m</span>
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                    item={item}
+                                    onClick={handleItemClick}
+                                />
                             ))}
-                            {filteredItems.length === 0 && (
-                                <div className="col-span-full text-center py-12 text-muted-foreground">
-                                    No items found in this category.
-                                </div>
-                            )}
                         </div>
                     </ScrollArea>
                 </div>
