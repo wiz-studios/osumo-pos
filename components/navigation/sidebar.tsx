@@ -14,6 +14,7 @@ import {
   Users,
   Activity,
   Settings,
+  TrendingUp,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -79,6 +80,12 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       label: "Reports",
       href: "/dashboard/reports",
       icon: BarChart3,
+      roles: ["manager"],
+    },
+    {
+      label: "Performance",
+      href: "/dashboard/reports/performance",
+      icon: TrendingUp,
       roles: ["manager"],
     },
     {
