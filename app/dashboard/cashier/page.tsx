@@ -54,6 +54,7 @@ export default function CashierPage() {
     const [receiptData, setReceiptData] = useState<ReceiptData | null>(null)
     const [receiptOpen, setReceiptOpen] = useState(false)
     const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending')
+    const [showStats, setShowStats] = useState(false) // Collapsed by default on mobile
 
     const isAdmin = role === 'manager' || role === 'admin'
 
@@ -491,9 +492,27 @@ export default function CashierPage() {
                 </div>
             </div>
 
-            {/* Admin Stats */}
+            {/* Admin Stats - Collapsible on mobile */}
             {isAdmin && dailySales.length >= 0 && (
-                <DailySalesStats orders={dailySales} />
+                <div className="space-y-2">
+                    {/* Toggle button - only visible on mobile */}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowStats(!showStats)}
+                        className="w-full lg:hidden flex items-center justify-between"
+                    >
+                        <span className="text-sm font-medium">Daily Stats</span>
+                        <span className="text-xs text-muted-foreground">
+                            {showStats ? '▼ Hide' : '▶ Show'}
+                        </span>
+                    </Button>
+
+                    {/* Stats - collapsed on mobile by default, always visible on desktop */}
+                    <div className={`${showStats ? 'block' : 'hidden'} lg:block`}>
+                        <DailySalesStats orders={dailySales} />
+                    </div>
+                </div>
             )}
 
             {/* Main Content */}
