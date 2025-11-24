@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { getSupabaseClient } from "@/lib/supabase/client"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
+import { Trash2 } from "lucide-react"
 import type { MenuCategory, MenuItem, InventoryItem, RecipeIngredient } from "@/lib/types"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -37,10 +38,12 @@ interface EditMenuItemDialogProps {
   item: MenuItem
   categories: MenuCategory[]
   onItemUpdated: (item: MenuItem) => void
+  onItemDeleted?: (itemId: string) => void
 }
 
-export function EditMenuItemDialog({ open, onOpenChange, item, categories, onItemUpdated }: EditMenuItemDialogProps) {
+export function EditMenuItemDialog({ open, onOpenChange, item, categories, onItemUpdated, onItemDeleted }: EditMenuItemDialogProps) {
   const [loading, setLoading] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [recipeIngredients, setRecipeIngredients] = useState<{ inventory_item_id: string, quantity_required: number }[]>([])
   const [selectedIngredient, setSelectedIngredient] = useState("")
@@ -187,6 +190,34 @@ export function EditMenuItemDialog({ open, onOpenChange, item, categories, onIte
       }
     } catch (error) {
       console.error("Error updating menu item:", error)
+    }
+
+    setLoading(false)
+  }
+
+  const handleDelete = async () => {
+    setLoading(true)
+    const supabase = getSupabaseClient()
+
+    try {
+      // Delete recipe ingredients first
+      await supabase.from("recipe_ingredients").delete().eq("menu_item_id", item.id)
+
+      // Delete menu item
+      const { error } = await supabase
+        .from("menu_items")
+        .delete()
+        .eq("id", item.id)
+
+      if (error) throw error
+
+      if (onItemDeleted) {
+        onItemDeleted(item.id)
+      }
+      setShowDeleteConfirm(false)
+      onOpenChange(false)
+    } catch (error) {
+      console.error("Error deleting menu item:", error)
     }
 
     setLoading(false)
@@ -361,16 +392,52 @@ export function EditMenuItemDialog({ open, onOpenChange, item, categories, onIte
             </div>
           </div>
 
-          <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-              Cancel
+          <div className="flex flex-col sm:flex-row gap-2 pt-4">
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="sm:mr-auto"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Item
             </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? "Saving..." : "Save Changes"}
-            </Button>
+            <div className="flex gap-2 flex-1">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading} className="flex-1">
+                {loading ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Menu Item</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete <span className="font-semibold text-foreground">{item.name}</span>?
+            </p>
+            <p className="text-sm text-destructive mt-2">
+              ⚠️ This action cannot be undone. All recipe ingredients will also be removed.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={loading}>
+              {loading ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }

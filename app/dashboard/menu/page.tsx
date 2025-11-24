@@ -31,6 +31,8 @@ export default function MenuPage() {
   const [showCategoryDialog, setShowCategoryDialog] = useState(false)
   const [editingCategory, setEditingCategory] = useState<MenuCategory | null>(null)
   const [categoryFormName, setCategoryFormName] = useState("")
+  const [deletingCategory, setDeletingCategory] = useState<MenuCategory | null>(null)
+  const [activeTabValue, setActiveTabValue] = useState<string>('')
 
   useEffect(() => {
     fetchData()
@@ -126,9 +128,71 @@ export default function MenuPage() {
     }
   }
 
+  const handleDeleteCategory = async () => {
+    if (!deletingCategory) return
+
+    const supabase = getSupabaseClient()
+
+    try {
+      // Get all items in this category
+      const itemsInCategory = items.filter(i => i.category_id === deletingCategory.id)
+
+      // Delete all items and their recipe ingredients
+      if (itemsInCategory.length > 0) {
+        const itemIds = itemsInCategory.map(item => item.id)
+
+        // Delete recipe ingredients for all items in this category
+        await supabase
+          .from("recipe_ingredients")
+          .delete()
+          .in("menu_item_id", itemIds)
+
+        // Delete all menu items in this category
+        await supabase
+          .from("menu_items")
+          .delete()
+          .in("id", itemIds)
+      }
+
+      // Delete the category
+      const { error } = await supabase
+        .from("menu_categories")
+        .delete()
+        .eq("id", deletingCategory.id)
+
+      if (error) {
+        toast({ title: "Error", description: "Failed to delete category", variant: "destructive" })
+      } else {
+        toast({
+          title: "Success",
+          description: `Category and ${itemsInCategory.length} item(s) deleted`
+        })
+        setCategories(categories.filter(c => c.id !== deletingCategory.id))
+        setItems(items.filter(i => i.category_id !== deletingCategory.id))
+        // Switch to first category if we deleted the active one
+        if (activeTabValue === deletingCategory.id && categories.length > 1) {
+          setActiveTabValue(categories.filter(c => c.id !== deletingCategory.id)[0].id)
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting category:", error)
+      toast({ title: "Error", description: "Failed to delete category", variant: "destructive" })
+    }
+
+    setDeletingCategory(null)
+  }
+
+  // Filter items based on search query (across ALL categories)
   const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  // Set initial active tab
+  useEffect(() => {
+    if (categories.length > 0 && !activeTabValue) {
+      setActiveTabValue(categories[0].id)
+    }
+  }, [categories, activeTabValue])
 
   if (loading) return <div className="p-6">Loading...</div>
 
@@ -172,7 +236,7 @@ export default function MenuPage() {
       </div>
 
       {categories.length > 0 ? (
-        <Tabs defaultValue={categories[0]?.id}>
+        <Tabs value={activeTabValue} onValueChange={setActiveTabValue}>
           <TabsList className="w-full justify-start overflow-x-auto">
             {categories.map((category) => {
               const count = filteredItems.filter((i) => i.category_id === category.id).length
@@ -327,6 +391,10 @@ export default function MenuPage() {
             setItems(items.map(i => i.id === updatedItem.id ? updatedItem : i))
             setEditingItem(null)
           }}
+          onItemDeleted={(itemId) => {
+            setItems(items.filter(i => i.id !== itemId))
+            setEditingItem(null)
+          }}
         />
       )}
 
@@ -345,9 +413,52 @@ export default function MenuPage() {
               placeholder="e.g., Breakfast"
             />
           </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {editingCategory && (
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setDeletingCategory(editingCategory)
+                  setShowCategoryDialog(false)
+                }}
+                className="sm:mr-auto"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Category
+              </Button>
+            )}
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button variant="outline" onClick={() => setShowCategoryDialog(false)} className="flex-1 sm:flex-none">Cancel</Button>
+              <Button onClick={handleCategorySubmit} className="flex-1 sm:flex-none">Save</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Category Confirmation Dialog */}
+      <Dialog open={!!deletingCategory} onOpenChange={(open) => !open && setDeletingCategory(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Category</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete <span className="font-semibold text-foreground">{deletingCategory?.name}</span>?
+            </p>
+            {deletingCategory && items.filter(i => i.category_id === deletingCategory.id).length > 0 && (
+              <p className="text-sm text-destructive mt-2">
+                ⚠️ This will also delete {items.filter(i => i.category_id === deletingCategory.id).length} item(s) in this category.
+              </p>
+            )}
+            <p className="text-sm text-muted-foreground mt-2">
+              This action cannot be undone.
+            </p>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCategoryDialog(false)}>Cancel</Button>
-            <Button onClick={handleCategorySubmit}>Save</Button>
+            <Button variant="outline" onClick={() => setDeletingCategory(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteCategory}>
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
