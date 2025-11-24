@@ -148,22 +148,22 @@ export default function KitchenPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0F0F1A] text-slate-300 p-6 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#0F0F1A] text-slate-300 p-3 sm:p-4 md:p-6 flex flex-col font-sans">
       {/* Header */}
-      <header className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-orange-500/10 rounded-lg flex items-center justify-center">
-            <ChefHat className="h-6 w-6 text-orange-500" />
+      <header className="flex justify-between items-center mb-4 md:mb-8">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="h-8 w-8 sm:h-10 sm:w-10 bg-orange-500/10 rounded-lg flex items-center justify-center">
+            <ChefHat className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Kitchen Display</h1>
-            <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight">Kitchen Display</h1>
+            <p className="text-slate-500 text-[10px] sm:text-xs font-medium uppercase tracking-wider">
               {newOrders.length + preparingOrders.length} Active Orders
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6">
           {/* History Toggle */}
           {readyOrders.length > 0 && (
             <div className="flex items-center space-x-2">
@@ -173,15 +173,15 @@ export default function KitchenPage() {
                 onCheckedChange={setShowAllHistory}
                 className="data-[state=checked]:bg-slate-700"
               />
-              <Label htmlFor="history-mode" className="text-xs text-slate-500 cursor-pointer font-medium">
+              <Label htmlFor="history-mode" className="text-[10px] sm:text-xs text-slate-500 cursor-pointer font-medium hidden sm:inline">
                 Show History
               </Label>
             </div>
           )}
 
           {/* Clock */}
-          <div className="text-right border-l border-slate-800 pl-6">
-            <div className="text-3xl font-bold text-white leading-none tracking-tight">
+          <div className="text-right border-l border-slate-800 pl-3 sm:pl-6">
+            <div className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-none tracking-tight">
               {currentTime.toLocaleTimeString('en-KE', {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -192,8 +192,8 @@ export default function KitchenPage() {
         </div>
       </header>
 
-      {/* 3-Column Grid */}
-      <div className="flex-1 grid grid-cols-3 gap-6 min-h-0">
+      {/* Responsive Grid: 1 col mobile, 2 col tablet, 3 col desktop */}
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6 min-h-0">
 
         {/* Column 1: NEW ORDERS */}
         <div className="flex flex-col min-h-0">

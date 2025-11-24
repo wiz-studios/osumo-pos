@@ -133,23 +133,31 @@ export default function MenuPage() {
   if (loading) return <div className="p-6">Loading...</div>
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Menu Management</h1>
-          <p className="text-muted-foreground mt-1">Manage categories and items for your menu</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Menu Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage categories and items for your menu</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => {
-            setEditingCategory(null)
-            setCategoryFormName("")
-            setShowCategoryDialog(true)
-          }}>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setEditingCategory(null)
+              setCategoryFormName("")
+              setShowCategoryDialog(true)
+            }}
+            className="flex-1 sm:flex-none"
+          >
             Manage Categories
           </Button>
-          <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+          <Button
+            onClick={() => setShowAddDialog(true)}
+            className="gap-2 flex-1 sm:flex-none"
+          >
             <Plus className="h-4 w-4" />
-            Add Item
+            <span className="hidden sm:inline">Add Item</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
       </div>
@@ -159,7 +167,7 @@ export default function MenuPage() {
           placeholder="Search menu items..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-md"
+          className="w-full sm:max-w-md"
         />
       </div>
 
@@ -179,11 +187,11 @@ export default function MenuPage() {
           </TabsList>
 
           {categories.map((category) => (
-            <TabsContent key={category.id} value={category.id} className="mt-6">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-xl font-semibold">{category.name}</h2>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <TabsContent key={category.id} value={category.id} className="mt-4 md:mt-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  <h2 className="text-lg sm:text-xl font-semibold">{category.name}</h2>
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
                     <Switch
                       checked={category.is_visible}
                       onCheckedChange={() => toggleCategoryVisibility(category)}
@@ -191,11 +199,16 @@ export default function MenuPage() {
                     <Label>Visible on POS</Label>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => {
-                  setEditingCategory(category)
-                  setCategoryFormName(category.name)
-                  setShowCategoryDialog(true)
-                }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setEditingCategory(category)
+                    setCategoryFormName(category.name)
+                    setShowCategoryDialog(true)
+                  }}
+                  className="w-full sm:w-auto"
+                >
                   <Edit2 className="h-4 w-4 mr-2" />
                   Edit Category
                 </Button>
