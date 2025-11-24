@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { AddMenuItemDialog } from "@/components/menu/add-menu-item-dialog"
 import { EditMenuItemDialog } from "@/components/menu/edit-menu-item-dialog"
 import type { MenuCategory, MenuItem } from "@/lib/types"
@@ -8,6 +9,13 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { getSupabaseClient } from "@/lib/supabase/client"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Plus, Edit2, Trash2, EyeOff, Search } from "lucide-react"
+import { ModernMenuCard } from "@/components/pos/modern-menu-card"
 
 export default function MenuPage() {
   const { toast } = useToast()
