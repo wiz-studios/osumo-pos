@@ -99,9 +99,9 @@ export function ModernMenuCard({ item, onClick, isAdmin = false }: ModernMenuCar
                         e.stopPropagation()
                         onClick(item)
                     }}
-                    className={`w-full font-semibold py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 ${isAdmin
+                    className={`w-full font-semibold py-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:scale-95 text-sm whitespace-nowrap ${isAdmin
                         ? "bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200"
-                        : "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
+                        : "bg-primary hover:bg-primary/90 text-primary-foreground"
                         }`}
                 >
                     {isAdmin ? (
