@@ -14,6 +14,7 @@ import { ReceiptDialog } from "@/components/cashier/receipt-dialog"
 import { generateKRAReceipt, ReceiptData } from "@/lib/receipt-generator"
 import { normalizePhone, isValidKenyanPhone } from "@/lib/phone-utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
 import { CreditCard, History } from "lucide-react"
 
 interface OrderWithItems {
@@ -478,13 +479,13 @@ export default function CashierPage() {
     }
 
     return (
-        <div className="h-screen flex flex-col p-4 md:p-6 gap-4 md:gap-6">
+        <div className="h-screen flex flex-col p-3 sm:p-4 md:p-6 gap-3 sm:gap-4 md:gap-6">
             {/* Header */}
-            <div className="flex items-center gap-3">
-                <CreditCard className="h-8 w-8 text-primary" />
+            <div className="flex items-center gap-2 sm:gap-3">
+                <CreditCard className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-bold">Cashier Dashboard</h1>
-                    <p className="text-sm md:text-base text-muted-foreground">
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Cashier Dashboard</h1>
+                    <p className="text-xs sm:text-sm md:text-base text-muted-foreground">
                         {pendingOrders.length} pending {pendingOrders.length === 1 ? 'order' : 'orders'}
                     </p>
                 </div>
@@ -506,24 +507,26 @@ export default function CashierPage() {
                 }}
                 className="flex-1 flex flex-col overflow-hidden"
             >
-                <TabsList>
+                <TabsList className="w-full grid grid-cols-2">
                     <TabsTrigger value="pending" className="flex items-center gap-2">
                         <CreditCard className="h-4 w-4" />
-                        Pending Payments
+                        <span className="hidden sm:inline">Pending Payments</span>
+                        <span className="sm:hidden">Pending</span>
                     </TabsTrigger>
                     {isAdmin && (
                         <TabsTrigger value="history" className="flex items-center gap-2">
                             <History className="h-4 w-4" />
-                            Payment History
+                            <span className="hidden sm:inline">Payment History</span>
+                            <span className="sm:hidden">History</span>
                         </TabsTrigger>
                     )}
                 </TabsList>
 
                 {/* Pending Payments Tab */}
                 <TabsContent value="pending" className="flex-1 overflow-hidden mt-4">
-                    <div className="h-full grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6 overflow-hidden">
-                        {/* Left Panel: Pending Orders Queue */}
-                        <div className="lg:col-span-2 overflow-y-auto">
+                    <div className="h-full flex flex-col lg:grid lg:grid-cols-5 gap-4 md:gap-6 overflow-hidden">
+                        {/* Left Panel: Pending Orders Queue - Hide on mobile when order is selected */}
+                        <div className={`lg:col-span-2 overflow-y-auto ${selectedOrder ? 'hidden lg:block' : 'block'}`}>
                             <h2 className="text-lg md:text-xl font-semibold mb-4">Pending Orders</h2>
                             <PendingOrdersQueue
                                 orders={pendingOrders}
@@ -532,9 +535,22 @@ export default function CashierPage() {
                             />
                         </div>
 
-                        {/* Right Panel: Payment Panel */}
-                        <div className="lg:col-span-3 overflow-y-auto">
-                            <h2 className="text-lg md:text-xl font-semibold mb-4">Payment</h2>
+                        {/* Right Panel: Payment Panel - Show on mobile only when order is selected */}
+                        <div className={`lg:col-span-3 overflow-y-auto ${selectedOrder ? 'block' : 'hidden lg:block'}`}>
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-lg md:text-xl font-semibold">Payment</h2>
+                                {/* Back button for mobile */}
+                                {selectedOrder && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setSelectedOrder(null)}
+                                        className="lg:hidden"
+                                    >
+                                        ← Back to Orders
+                                    </Button>
+                                )}
+                            </div>
                             <PaymentPanel
                                 order={selectedOrder}
                                 onCompletePayment={handleCompletePayment}
