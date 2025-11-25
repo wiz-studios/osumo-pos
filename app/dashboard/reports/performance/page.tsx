@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { startOfDay, subDays, parseISO } from "date-fns"
 import { WaiterPerformance } from "@/components/reports/waiter-performance"
 import { CashierPerformance } from "@/components/reports/cashier-performance"
+import { KitchenPerformance } from "@/components/reports/kitchen-performance"
 import type { Order, StaffMember } from "@/lib/types"
 
 export default function PerformancePage() {
@@ -98,15 +99,8 @@ export default function PerformancePage() {
                     <CashierPerformance orders={orders} staffList={staffList} />
                 </TabsContent>
 
-                <TabsContent value="kitchen">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Kitchen Performance</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-center py-10 text-muted-foreground">
-                            Coming Soon in Phase 3
-                        </CardContent>
-                    </Card>
+                <TabsContent value="kitchen" className="space-y-4">
+                    <KitchenPerformance orders={orders} />
                 </TabsContent>
             </Tabs>
         </div >

@@ -29,6 +29,26 @@ export default function InventoryPage() {
 
   useEffect(() => {
     fetchInventory()
+
+    // Real-time subscription
+    const channel = supabase
+      .channel('inventory-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'inventory_items',
+        },
+        () => {
+          fetchInventory()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const fetchInventory = async () => {
@@ -69,7 +89,7 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Inventory Management</h1>
           <p className="text-muted-foreground mt-1">Track ingredients and stock levels</p>
@@ -139,45 +159,49 @@ export default function InventoryPage() {
               No inventory items yet. Add one to get started.
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Item Name</TableHead>
-                  <TableHead>Unit</TableHead>
-                  <TableHead>Current Stock</TableHead>
-                  <TableHead>Reorder Level</TableHead>
-                  <TableHead>Unit Cost</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {inventoryItems.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{item.unit}</TableCell>
-                    <TableCell>{item.quantity_in_stock}</TableCell>
-                    <TableCell>{item.reorder_level}</TableCell>
-                    <TableCell>KES {item.unit_cost.toFixed(2)}</TableCell>
-                    <TableCell>
-                      {item.quantity_in_stock <= item.reorder_level ? (
-                        <Badge variant="destructive">Low Stock</Badge>
-                      ) : (
-                        <Badge variant="outline">In Stock</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="flex gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => setEditingItem(item)}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item Name</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead>Current Stock</TableHead>
+                    <TableHead>Reorder Level</TableHead>
+                    <TableHead>Unit Cost</TableHead>
+                    <TableHead>Stock Value</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {inventoryItems.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell>{item.unit}</TableCell>
+                      <TableCell>{item.quantity_in_stock}</TableCell>
+                      <TableCell>{item.reorder_level}</TableCell>
+                      <TableCell>KES {item.unit_cost.toFixed(2)}</TableCell>
+                      <TableCell>KES {(item.quantity_in_stock * item.unit_cost).toLocaleString()}</TableCell>
+                      <TableCell>
+                        {item.quantity_in_stock <= item.reorder_level ? (
+                          <Badge variant="destructive">Low Stock</Badge>
+                        ) : (
+                          <Badge variant="outline">In Stock</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => setEditingItem(item)}>
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
