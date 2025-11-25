@@ -44,7 +44,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       label: "POS",
       href: "/dashboard/pos",
       icon: ShoppingCart,
-      roles: ["manager", "waiter", "cashier"],
+      roles: ["manager", "waiter"],
     },
     {
       label: "Kitchen",

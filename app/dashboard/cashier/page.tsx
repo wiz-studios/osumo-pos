@@ -378,6 +378,67 @@ export default function CashierPage() {
 
             if (updateError) throw updateError
 
+            // 🔄 INVENTORY DEDUCTION (after successful payment)
+            try {
+                // Fetch order items to get menu_item_ids
+                const { data: orderItems } = await supabase
+                    .from('order_items')
+                    .select('menu_item_id, quantity')
+                    .eq('order_id', selectedOrder.id)
+
+                if (orderItems && orderItems.length > 0) {
+                    const menuItemIds = orderItems.map(item => item.menu_item_id)
+
+                    // Fetch recipes for these menu items
+                    const { data: recipes } = await supabase
+                        .from('recipe_ingredients')
+                        .select('inventory_item_id, quantity_required, menu_item_id')
+                        .in('menu_item_id', menuItemIds)
+
+                    if (recipes && recipes.length > 0) {
+                        // Calculate total deductions per inventory item
+                        const deductions = new Map<string, number>()
+
+                        orderItems.forEach(orderItem => {
+                            const itemRecipes = recipes.filter(r => r.menu_item_id === orderItem.menu_item_id)
+                            itemRecipes.forEach(recipe => {
+                                const currentDeduction = deductions.get(recipe.inventory_item_id) || 0
+                                deductions.set(
+                                    recipe.inventory_item_id,
+                                    currentDeduction + (recipe.quantity_required * orderItem.quantity)
+                                )
+                            })
+                        })
+
+                        // Deduct stock for each inventory item
+                        for (const [inventoryItemId, quantityToDeduct] of deductions) {
+                            // Use the deduct function
+                            await supabase.rpc('deduct_inventory_stock', {
+                                p_inventory_item_id: inventoryItemId,
+                                p_quantity: quantityToDeduct
+                            })
+
+                            // Log transaction
+                            await supabase.from('inventory_transactions').insert({
+                                restaurant_id: selectedOrder.restaurant_id,
+                                inventory_item_id: inventoryItemId,
+                                transaction_type: 'sale',
+                                quantity: -quantityToDeduct,
+                                reference_id: selectedOrder.id,
+                                notes: `Auto-deducted from order #${selectedOrder.id.slice(0, 8)}`,
+                                created_by: staffId
+                            })
+                        }
+
+                        console.log('Inventory deducted successfully for order:', selectedOrder.id)
+                    }
+                }
+            } catch (invError) {
+                console.error('Inventory deduction error:', invError)
+                // Don't fail the payment if inventory deduction fails
+                // Just log it for manual correction
+            }
+
             // 5. Immediately remove from pending orders list (don't wait for realtime)
             setPendingOrders(prev => prev.filter(o => o.id !== selectedOrder.id))
 
