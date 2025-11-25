@@ -2,6 +2,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -29,6 +30,7 @@ interface CartItem {
 }
 
 export default function POSPage() {
+    const router = useRouter()
     const { toast } = useToast()
     const [categories, setCategories] = useState<MenuCategory[]>([])
     const [items, setItems] = useState<MenuItem[]>([])
@@ -68,8 +70,6 @@ export default function POSPage() {
     const [selectedTable, setSelectedTable] = useState<string>('')
     const [isPrepaid, setIsPrepaid] = useState(false) // Payment before kitchen preparation
 
-
-
     // Cart is now memory-only (no localStorage persistence)
     useEffect(() => {
         setIsCartLoaded(true)
@@ -92,9 +92,21 @@ export default function POSPage() {
                     .single()
 
                 if (staff?.restaurant_id) {
+                    const userRole = staff.role || roleFromStorage
+
+                    // 🔒 ACCESS CONTROL: Redirect unauthorized roles
+                    if (userRole === 'cashier') {
+                        router.push('/dashboard/cashier')
+                        return
+                    }
+                    if (userRole === 'kitchen') {
+                        router.push('/dashboard/kitchen')
+                        return
+                    }
+
                     setRestaurantId(staff.restaurant_id)
                     setStaffId(staff.id)
-                    setStaffRole(staff.role || roleFromStorage)
+                    setStaffRole(userRole)
                     await Promise.all([
                         fetchCategories(staff.restaurant_id),
                         fetchItems(staff.restaurant_id)
