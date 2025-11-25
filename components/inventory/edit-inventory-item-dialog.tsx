@@ -74,17 +74,38 @@ export function EditInventoryItemDialog({ item, open, onOpenChange, onSuccess }:
     setLoading(true)
 
     try {
-      const { error } = await supabase.from("inventory_items").update(data).eq("id", item.id)
+      // Log the data being submitted
+      console.log("Submitting inventory update:", data)
+
+      // Ensure unit_cost is a number
+      const updateData = {
+        ...data,
+        unit_cost: Number(data.unit_cost),
+        quantity_in_stock: Number(data.quantity_in_stock),
+        reorder_level: Number(data.reorder_level),
+      }
+
+      console.log("Processed update data:", updateData)
+      console.log("Updating item with ID:", item.id)
+
+      const { data: updatedData, error } = await supabase
+        .from("inventory_items")
+        .update(updateData)
+        .eq("id", item.id)
+        .select()
+
+      console.log("Database response:", { updatedData, error })
 
       if (error) throw error
 
       toast({
         title: "Success",
-        description: "Inventory item updated successfully",
+        description: `Inventory item updated successfully. New unit cost: KES ${updateData.unit_cost}`,
       })
 
       onSuccess()
     } catch (error) {
+      console.error("Error updating inventory item:", error)
       toast({
         title: "Error",
         description: "Failed to update inventory item",
