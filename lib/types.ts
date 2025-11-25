@@ -61,6 +61,7 @@ export interface Order {
   customer_name?: string
   order_type: "dine-in" | "takeaway" | "delivery"
   status: "new" | "in_progress" | "completed" | "paid"
+  kitchen_status?: "new" | "in_progress" | "ready" | "served"
   total: number
   discount?: number
   staff_id?: string

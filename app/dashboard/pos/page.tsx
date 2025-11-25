@@ -2,7 +2,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -30,7 +29,6 @@ interface CartItem {
 }
 
 export default function POSPage() {
-    const router = useRouter()
     const { toast } = useToast()
     const [categories, setCategories] = useState<MenuCategory[]>([])
     const [items, setItems] = useState<MenuItem[]>([])
@@ -83,6 +81,7 @@ export default function POSPage() {
             const staffIdFromStorage = localStorage.getItem('current_staff_id')
             const roleFromStorage = localStorage.getItem('current_staff_role')
 
+
             if (staffIdFromStorage) {
                 // Staff PIN login - get restaurant ID from staff record
                 const { data: staff } = await supabase
@@ -92,21 +91,9 @@ export default function POSPage() {
                     .single()
 
                 if (staff?.restaurant_id) {
-                    const userRole = staff.role || roleFromStorage
-
-                    // 🔒 ACCESS CONTROL: Redirect unauthorized roles
-                    if (userRole === 'cashier') {
-                        router.push('/dashboard/cashier')
-                        return
-                    }
-                    if (userRole === 'kitchen') {
-                        router.push('/dashboard/kitchen')
-                        return
-                    }
-
                     setRestaurantId(staff.restaurant_id)
                     setStaffId(staff.id)
-                    setStaffRole(userRole)
+                    setStaffRole(staff.role || roleFromStorage)
                     await Promise.all([
                         fetchCategories(staff.restaurant_id),
                         fetchItems(staff.restaurant_id)
