@@ -5,10 +5,12 @@ import { getSupabaseClient } from "@/lib/supabase/client"
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js"
 import { WaiterOrderCard } from "@/components/orders/waiter-order-card"
 import { WaiterPerformanceStats } from "@/components/orders/waiter-performance-stats"
+import { VoidOrderDialog } from "@/components/orders/void-order-dialog"
 import { useStaffRole } from "@/hooks/use-staff-role"
 import { useToast } from "@/hooks/use-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ClipboardList, History } from "lucide-react"
+import { logOrderVoid } from "@/lib/activity-logger"
 
 interface OrderWithItems {
   id: string
@@ -44,6 +46,11 @@ export default function OrdersPage() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [filter, setFilter] = useState<'all' | 'cooking' | 'ready' | 'at_cashier'>('all')
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active')
+
+  // Void Dialog State
+  const [voidDialogOpen, setVoidDialogOpen] = useState(false)
+  const [orderToVoid, setOrderToVoid] = useState<OrderWithItems | null>(null)
+  const [voiding, setVoiding] = useState(false)
 
   const isAdmin = role === 'manager' || role === 'admin'
 
@@ -263,6 +270,79 @@ export default function OrdersPage() {
     }
   }
 
+  const handleVoidClick = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId)
+    if (order) {
+      setOrderToVoid(order)
+      setVoidDialogOpen(true)
+    }
+  }
+
+  const confirmVoid = async (reason: string) => {
+    if (!orderToVoid || !staffId) return
+
+    setVoiding(true)
+    const supabase = getSupabaseClient()
+
+    try {
+      // 1. Update order status
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          status: 'cancelled',
+          // We might want to track who cancelled it and why in the order itself too, 
+          // but activity log is the primary place for this now.
+        })
+        .eq('id', orderToVoid.id)
+
+      if (updateError) throw updateError
+
+      // 2. Log activity
+      await logOrderVoid({
+        orderId: orderToVoid.id,
+        reason: reason,
+        orderTotal: orderToVoid.total,
+        staffId: staffId,
+        // We don't have restaurantId readily available in state here without fetching, 
+        // but logActivity handles looking it up if missing, or we could fetch it.
+        // For now, let's rely on the backend lookup or add it to state if needed.
+      })
+
+      // 3. Log event (legacy/redundant but good for consistency)
+      await supabase.from('order_events').insert({
+        order_id: orderToVoid.id,
+        from_status: orderToVoid.status,
+        to_status: 'cancelled',
+        triggered_by: staffId,
+        event_type: 'cancellation',
+        metadata: {
+          reason: reason,
+          timestamp: new Date().toISOString()
+        }
+      })
+
+      toast({
+        title: "Order Voided",
+        description: "Order has been cancelled successfully"
+      })
+
+      // 4. Optimistic Update
+      setOrders(prev => prev.filter(o => o.id !== orderToVoid.id))
+      setVoidDialogOpen(false)
+      setOrderToVoid(null)
+
+    } catch (error: any) {
+      console.error('Error voiding order:', error)
+      toast({
+        title: "Error",
+        description: "Failed to void order",
+        variant: "destructive"
+      })
+    } finally {
+      setVoiding(false)
+    }
+  }
+
   const getFilteredOrders = () => {
     switch (filter) {
       case 'cooking':
@@ -361,6 +441,7 @@ export default function OrdersPage() {
                       key={order.id}
                       order={order}
                       onSendToCashier={handleSendToCashier}
+                      onVoid={handleVoidClick}
                     />
                   ))}
                 </div>
@@ -387,6 +468,7 @@ export default function OrdersPage() {
                   key={order.id}
                   order={order}
                   onSendToCashier={() => { }} // No action for historical orders
+                  onVoid={() => { }} // No voiding historical orders
                 />
               ))}
             </div>
@@ -399,6 +481,16 @@ export default function OrdersPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Void Order Dialog */}
+      <VoidOrderDialog
+        open={voidDialogOpen}
+        onOpenChange={setVoidDialogOpen}
+        onConfirm={confirmVoid}
+        processing={voiding}
+        orderId={orderToVoid?.id || ''}
+        orderNumber={orderToVoid?.id.slice(0, 8)} // Simple order number for now
+      />
     </div>
   )
 }

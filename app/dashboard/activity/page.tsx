@@ -261,6 +261,32 @@ export default function ActivityPage() {
                             ))}
                         </SelectContent>
                     </Select>
+
+                    <Button
+                        variant="outline"
+                        className="ml-auto"
+                        onClick={async () => {
+                            try {
+                                const response = await fetch('/api/logs/download-daily');
+                                if (!response.ok) throw new Error('Download failed');
+
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `osumo-activity-${new Date().toISOString().slice(0, 10)}.txt`;
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                            } catch (error) {
+                                console.error('Download error:', error);
+                                // Could add toast here
+                            }
+                        }}
+                    >
+                        <span className="mr-2">📥</span>
+                        Download Today's Log
+                    </Button>
                 </div>
 
                 <Card>

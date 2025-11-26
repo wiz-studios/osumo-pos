@@ -11,6 +11,7 @@ import { getSupabaseClient } from "@/lib/supabase/client"
 import { hashPin } from "@/lib/auth-helpers"
 import { useToast } from "@/hooks/use-toast"
 import type { StaffMember } from "@/lib/types"
+import { logStaffUpdated } from "@/lib/activity-logger"
 
 interface EditStaffDialogProps {
     open: boolean
@@ -89,6 +90,25 @@ export function EditStaffDialog({ open, onOpenChange, staff, onSuccess }: EditSt
                 .eq("id", staff.id)
 
             if (error) throw error
+
+            // Calculate changes for logging
+            const changes: string[] = []
+            if (staff.first_name !== firstName) changes.push(`First Name: ${staff.first_name} -> ${firstName}`)
+            if (staff.last_name !== lastName) changes.push(`Last Name: ${staff.last_name} -> ${lastName}`)
+            if (staff.role !== role) changes.push(`Role: ${staff.role} -> ${role}`)
+            if (staff.phone !== phone) changes.push(`Phone changed`)
+            if (staff.email !== email) changes.push(`Email changed`)
+            if (staff.active !== active) changes.push(`Active: ${staff.active} -> ${active}`)
+            if (resetPin) changes.push('PIN reset')
+
+            if (changes.length > 0) {
+                await logStaffUpdated({
+                    targetStaffId: staff.id,
+                    staffName: `${firstName} ${lastName}`,
+                    changes,
+                    restaurantId: staff.restaurant_id
+                })
+            }
 
             toast({
                 title: "Staff Updated",

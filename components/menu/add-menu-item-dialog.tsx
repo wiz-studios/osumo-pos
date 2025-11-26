@@ -13,6 +13,7 @@ import type { MenuCategory, MenuItem } from "@/lib/types"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { logMenuItemCreated } from "@/lib/activity-logger"
 
 const menuItemSchema = z.object({
   name: z.string().min(1, "Name is required").max(30, "Name must be 30 characters or less"),
@@ -155,6 +156,15 @@ export function AddMenuItemDialog({
       .single()
 
     if (!error && newItem) {
+      // Log activity
+      await logMenuItemCreated({
+        itemId: newItem.id,
+        itemName: newItem.name,
+        price: newItem.price,
+        category: localCategories.find(c => c.id === newItem.category_id)?.name || 'Unknown',
+        restaurantId: restaurantId
+      })
+
       onItemAdded(newItem as MenuItem)
       reset()
       onOpenChange(false)

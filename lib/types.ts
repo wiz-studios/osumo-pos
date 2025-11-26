@@ -123,21 +123,49 @@ export interface InventoryTransaction {
 }
 
 export type ActivityActionType =
+  // Payment Operations
   | 'payment_processed'
   | 'payment_failed'
+
+  // Inventory Management
   | 'stock_adjusted'
-  | 'discount_applied'
-  | 'order_voided'
-  | 'order_modified'
+
+  // Staff Authentication
   | 'staff_login'
   | 'staff_logout'
+
+  // Order Management
+  | 'order_created'
+  | 'order_modified'
+  | 'order_voided'
+  | 'order_sent_to_kitchen'
+  | 'order_sent_to_cashier'
+
+  // Discounts & Price Adjustments
+  | 'discount_applied'
+  | 'price_override'
+
+  // Menu Management
+  | 'menu_item_created'
   | 'menu_item_updated'
-  | 'price_changed'
+  | 'menu_item_deleted'
+  | 'menu_item_availability_changed'
+
+  // Staff Management
+  | 'staff_created'
+  | 'staff_updated'
+  | 'staff_deleted'
+  | 'staff_role_changed'
+  | 'staff_pin_changed'
+
+  // Reports & Analytics
+  | 'report_viewed'
+  | 'report_exported'
 
 export interface ActivityLogDetails {
   // Common fields
-  reason?: string
   notes?: string
+  reason?: string
 
   // Payment-specific
   payment_method?: 'cash' | 'mpesa'
@@ -154,15 +182,32 @@ export interface ActivityLogDetails {
 
   // Order-specific
   order_number?: string
-  table_number?: string | number
+  table_number?: string
+  order_type?: string
+  order_total?: number
+  items_count?: number
 
   // Discount-specific
   discount_amount?: number
   discount_percentage?: number
-
-  // Menu item-specific
-  old_price?: number
+  original_price?: number
   new_price?: number
+
+  // Menu-specific
+  menu_item_name?: string
+  old_price?: number
+  new_price_value?: number
+  availability?: boolean
+
+  // Staff-specific
+  staff_name?: string
+  old_role?: string
+  new_role?: string
+
+  // Report-specific
+  report_name?: string
+  date_range?: string
+  export_format?: string
 }
 
 export interface ActivityLog {

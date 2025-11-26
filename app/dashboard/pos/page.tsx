@@ -11,6 +11,12 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
 import type { MenuCategory, MenuItem, Order, OrderItem, RecipeIngredient } from "@/lib/types"
+import {
+    logOrderCreated,
+    logOrderSentToKitchen,
+    logOrderSentToCashier,
+    logDiscount
+} from "@/lib/activity-logger"
 import { ItemModifierDialog } from "@/components/pos/item-modifier-dialog"
 import { CheckoutDialog } from "@/components/pos/checkout-dialog"
 import { ReceiptDialog } from "@/components/pos/receipt-dialog"
@@ -238,6 +244,26 @@ export default function POSPage() {
                 sent_to_cashier_at: order.sent_to_cashier_at
             })
 
+            // Log activity
+            await logOrderCreated({
+                orderId: order.id,
+                orderNumber: order.id.slice(0, 8),
+                tableNumber: undefined,
+                orderType: order.order_type,
+                orderTotal: order.total,
+                itemsCount: cart.length,
+                staffId,
+                restaurantId
+            })
+
+            await logOrderSentToCashier({
+                orderId: order.id,
+                orderNumber: order.id.slice(0, 8),
+                orderTotal: order.total,
+                staffId,
+                restaurantId
+            })
+
             // Show success dialog
             setSuccessData({
                 orderType: 'cashier',
@@ -351,6 +377,26 @@ export default function POSPage() {
                 table: selectedTable,
                 total: order.total,
                 sent_to_kitchen_at: order.sent_to_kitchen_at
+            })
+
+            // Log activity
+            await logOrderCreated({
+                orderId: order.id,
+                orderNumber: order.id.slice(0, 8),
+                tableNumber: selectedTable,
+                orderType: order.order_type,
+                orderTotal: order.total,
+                itemsCount: cart.length,
+                staffId,
+                restaurantId
+            })
+
+            await logOrderSentToKitchen({
+                orderId: order.id,
+                orderNumber: order.id.slice(0, 8),
+                itemsCount: cart.length,
+                staffId,
+                restaurantId
             })
 
             // Success feedback with order reference
@@ -532,6 +578,27 @@ export default function POSPage() {
                         created_by: staffId
                     })
                 }
+            }
+
+            // Log activity
+            await logOrderCreated({
+                orderId: order.id,
+                orderNumber: order.id.slice(0, 8),
+                tableNumber: paymentData.tableName || undefined,
+                orderType: order.order_type,
+                orderTotal: order.total,
+                itemsCount: cart.length,
+                staffId,
+                restaurantId
+            })
+
+            if (paymentData.discount > 0) {
+                await logDiscount({
+                    orderId: order.id,
+                    discountAmount: paymentData.discount,
+                    staffId,
+                    restaurantId
+                })
             }
 
             // Success

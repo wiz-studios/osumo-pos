@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { logStaffCreated } from "@/lib/activity-logger"
 
 const staffSchema = z.object({
     firstName: z.string().min(1, "First name is required"),
@@ -104,6 +105,14 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
                 console.error("Supabase Insert Error:", error)
                 throw error
             }
+
+            // Log activity
+            await logStaffCreated({
+                newStaffId: (await supabase.from('staff').select('id').eq('pin_hash', pinHash).single()).data?.id || 'unknown',
+                staffName: `${data.firstName} ${data.lastName}`,
+                role: data.role,
+                restaurantId: restaurantId
+            })
 
             toast({
                 title: "Staff Added",

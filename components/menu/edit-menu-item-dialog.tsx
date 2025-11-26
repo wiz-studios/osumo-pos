@@ -16,6 +16,7 @@ import type { MenuCategory, MenuItem, InventoryItem, RecipeIngredient } from "@/
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { logMenuItemUpdated, logMenuItemDeleted } from "@/lib/activity-logger"
 
 const menuItemSchema = z.object({
   name: z.string().min(1, "Name is required").max(30, "Name must be 30 characters or less"),
@@ -186,6 +187,23 @@ export function EditMenuItemDialog({ open, onOpenChange, item, categories, onIte
       }
 
       if (updatedItem) {
+        // Calculate changes for logging
+        const changes: string[] = []
+        if (item.name !== data.name) changes.push(`Name: ${item.name} -> ${data.name}`)
+        if (item.price !== data.price) changes.push(`Price: ${item.price} -> ${data.price}`)
+        if (item.available !== data.available) changes.push(`Availability: ${item.available} -> ${data.available}`)
+        if (item.category_id !== data.categoryId) changes.push('Category changed')
+        if (item.is_daily_special !== data.isDailySpecial) changes.push(`Daily Special: ${item.is_daily_special} -> ${data.isDailySpecial}`)
+
+        if (changes.length > 0) {
+          await logMenuItemUpdated({
+            itemId: item.id,
+            itemName: item.name,
+            changes,
+            restaurantId: item.restaurant_id
+          })
+        }
+
         onItemUpdated(updatedItem as MenuItem)
         onOpenChange(false)
       }
@@ -211,6 +229,13 @@ export function EditMenuItemDialog({ open, onOpenChange, item, categories, onIte
         .eq("id", item.id)
 
       if (error) throw error
+
+      // Log activity
+      await logMenuItemDeleted({
+        itemId: item.id,
+        itemName: item.name,
+        restaurantId: item.restaurant_id
+      })
 
       if (onItemDeleted) {
         onItemDeleted(item.id)

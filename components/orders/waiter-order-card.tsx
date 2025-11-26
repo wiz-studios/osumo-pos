@@ -3,7 +3,13 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Clock, Flame, AlertTriangle } from "lucide-react"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Clock, Flame, AlertTriangle, MoreVertical, Trash2 } from "lucide-react"
 import { useState } from "react"
 
 interface WaiterOrderCardProps {
@@ -31,9 +37,10 @@ interface WaiterOrderCardProps {
         }>
     }
     onSendToCashier: (orderId: string) => void
+    onVoid: (orderId: string) => void
 }
 
-export function WaiterOrderCard({ order, onSendToCashier }: WaiterOrderCardProps) {
+export function WaiterOrderCard({ order, onSendToCashier, onVoid }: WaiterOrderCardProps) {
     const [sending, setSending] = useState(false)
 
     const getStatusLabel = () => {
@@ -99,10 +106,31 @@ export function WaiterOrderCard({ order, onSendToCashier }: WaiterOrderCardProps
                             </p>
                         )}
                     </div>
-                    <Badge className={`${getStatusColor()} border`}>
-                        {getStatusLabel()}
-                        {order.kitchen_status === 'ready' && ' ✓'}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                        <Badge className={`${getStatusColor()} border`}>
+                            {getStatusLabel()}
+                            {order.kitchen_status === 'ready' && ' ✓'}
+                        </Badge>
+
+                        {order.status !== 'pending_payment' && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                        className="text-destructive focus:text-destructive"
+                                        onClick={() => onVoid(order.id)}
+                                    >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Void Order
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                    </div>
                 </div>
             </CardHeader>
 

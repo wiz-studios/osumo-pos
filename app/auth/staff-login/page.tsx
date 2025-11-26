@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import { verifyPin } from "@/lib/auth-helpers"
+import { logStaffLogin } from "@/lib/activity-logger"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -68,11 +69,17 @@ export default function StaffLoginPage() {
                 localStorage.removeItem("current_staff_id")
                 localStorage.removeItem("current_staff_name")
                 localStorage.removeItem("current_staff_role")
-                
+
                 // Store fresh staff session data
                 localStorage.setItem("current_staff_id", selectedStaff.id)
                 localStorage.setItem("current_staff_name", `${selectedStaff.first_name} ${selectedStaff.last_name}`)
                 localStorage.setItem("current_staff_role", selectedStaff.role)
+
+                // Log login activity
+                await logStaffLogin({
+                    staffId: selectedStaff.id,
+                    restaurantId: selectedStaff.restaurant_id
+                })
 
                 // Redirect to POS (staff don't need the main dashboard)
                 router.push("/dashboard/pos")
