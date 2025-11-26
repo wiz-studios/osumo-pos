@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface PaymentHistoryOrder {
     id: string
+    restaurant_id: string
     table_number: string | null
     order_type: string
     status: string

@@ -16,9 +16,13 @@ import { normalizePhone, isValidKenyanPhone } from "@/lib/phone-utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { CreditCard, History } from "lucide-react"
+import { logPayment } from "@/lib/activity-logger"
+
+
 
 interface OrderWithItems {
     id: string
+    restaurant_id: string
     table_number: string | null
     order_type: string
     status: string
@@ -387,7 +391,7 @@ export default function CashierPage() {
                     .eq('order_id', selectedOrder.id)
 
                 if (orderItems && orderItems.length > 0) {
-                    const menuItemIds = orderItems.map(item => item.menu_item_id)
+                    const menuItemIds = orderItems.map((item: any) => item.menu_item_id)
 
                     // Fetch recipes for these menu items
                     const { data: recipes } = await supabase
@@ -399,9 +403,9 @@ export default function CashierPage() {
                         // Calculate total deductions per inventory item
                         const deductions = new Map<string, number>()
 
-                        orderItems.forEach(orderItem => {
-                            const itemRecipes = recipes.filter(r => r.menu_item_id === orderItem.menu_item_id)
-                            itemRecipes.forEach(recipe => {
+                        orderItems.forEach((orderItem: any) => {
+                            const itemRecipes = recipes.filter((r: any) => r.menu_item_id === orderItem.menu_item_id)
+                            itemRecipes.forEach((recipe: any) => {
                                 const currentDeduction = deductions.get(recipe.inventory_item_id) || 0
                                 deductions.set(
                                     recipe.inventory_item_id,
@@ -470,6 +474,17 @@ export default function CashierPage() {
             // 8. Clear selection
             setSelectedOrder(null)
 
+            // 9. Log payment activity
+            await logPayment({
+                orderId: selectedOrder.id,
+                paymentMethod,
+                amount: selectedOrder.total,
+                transactionId: paymentMethod === 'mpesa' ? paymentData.transaction_code : undefined,
+                phone: paymentMethod === 'mpesa' ? paymentData.phone_number : undefined,
+                success: true,
+                staffId,
+            })
+
             toast({
                 title: "Payment Complete",
                 description: `Order paid via ${paymentMethod.toUpperCase()}`
@@ -479,6 +494,16 @@ export default function CashierPage() {
             // Serialize error so non-enumerable properties (like Error.message) are visible in console
             const serialized = serializeError(error)
             console.error('Payment error object:', serialized)
+
+            // Log failed payment attempt
+            await logPayment({
+                orderId: selectedOrder.id,
+                paymentMethod,
+                amount: selectedOrder.total,
+                success: false,
+                errorMessage: serialized?.message || 'Unknown error',
+                staffId,
+            })
 
             // Provide a defensive fallback for the toast message
             const toastMessage = (serialized && (serialized.message || serialized.msg)) || 'An unknown error occurred. Check console for details.'

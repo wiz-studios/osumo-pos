@@ -122,12 +122,57 @@ export interface InventoryTransaction {
   created_at: string
 }
 
+export type ActivityActionType =
+  | 'payment_processed'
+  | 'payment_failed'
+  | 'stock_adjusted'
+  | 'discount_applied'
+  | 'order_voided'
+  | 'order_modified'
+  | 'staff_login'
+  | 'staff_logout'
+  | 'menu_item_updated'
+  | 'price_changed'
+
+export interface ActivityLogDetails {
+  // Common fields
+  reason?: string
+  notes?: string
+
+  // Payment-specific
+  payment_method?: 'cash' | 'mpesa'
+  amount?: number
+  transaction_id_masked?: string
+  phone_masked?: string
+
+  // Stock-specific
+  item_name?: string
+  quantity_change?: number
+  adjustment_type?: 'spoilage' | 'wastage' | 'restock' | 'correction'
+  old_quantity?: number
+  new_quantity?: number
+
+  // Order-specific
+  order_number?: string
+  table_number?: string | number
+
+  // Discount-specific
+  discount_amount?: number
+  discount_percentage?: number
+
+  // Menu item-specific
+  old_price?: number
+  new_price?: number
+}
+
 export interface ActivityLog {
   id: string
   restaurant_id: string
   staff_id: string
-  action: string
-  details?: any
+  action_type: ActivityActionType | string
+  target_id?: string
+  target_type?: string
+  details?: ActivityLogDetails
   created_at: string
 }
 

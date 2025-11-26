@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import type { InventoryItem } from "@/lib/types"
+import { logStockAdjustment } from "@/lib/activity-logger"
 
 interface AdjustStockDialogProps {
     open: boolean
@@ -111,6 +112,22 @@ export function AdjustStockDialog({ open, onOpenChange, onSuccess }: AdjustStock
                 notes,
                 created_by: staff.id,
             })
+
+            // Log activity for audit trail
+            const selectedItem = inventoryItems.find(i => i.id === selectedItemId)
+            if (selectedItem) {
+                await logStockAdjustment({
+                    inventoryItemId: selectedItemId,
+                    itemName: selectedItem.name,
+                    quantityChange: adjustmentAmount,
+                    adjustmentType: adjustmentType === "subtract" ? (transactionType as any) : 'restock',
+                    reason: notes || `${adjustmentType === "add" ? "Added" : "Removed"} stock via ${transactionType}`,
+                    oldQuantity: item.quantity_in_stock,
+                    newQuantity: newStock,
+                    staffId: staff.id,
+                    restaurantId: staff.restaurant_id,
+                })
+            }
 
             toast({
                 title: "Stock Adjusted",
