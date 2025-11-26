@@ -10,7 +10,7 @@ import { ShoppingCart, Search, Plus, Minus, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
-import type { MenuCategory, MenuItem, Order, OrderItem, RecipeIngredient } from "@/lib/types"
+import type { MenuCategory, MenuItem, Order, OrderItem, RecipeIngredient, MenuItemSuggestion } from "@/lib/types"
 import {
     logOrderCreated,
     logOrderSentToKitchen,
@@ -38,6 +38,7 @@ export default function POSPage() {
     const { toast } = useToast()
     const [categories, setCategories] = useState<MenuCategory[]>([])
     const [items, setItems] = useState<MenuItem[]>([])
+    const [suggestions, setSuggestions] = useState<MenuItemSuggestion[]>([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
     const [activeCategory, setActiveCategory] = useState<string>("")
@@ -102,7 +103,9 @@ export default function POSPage() {
                     setStaffRole(staff.role || roleFromStorage)
                     await Promise.all([
                         fetchCategories(staff.restaurant_id),
-                        fetchItems(staff.restaurant_id)
+                        fetchCategories(staff.restaurant_id),
+                        fetchItems(staff.restaurant_id),
+                        fetchSuggestions(staff.restaurant_id)
                     ])
                 }
                 setLoading(false)
@@ -127,7 +130,9 @@ export default function POSPage() {
                 setStaffRole(staff.role)
                 await Promise.all([
                     fetchCategories(staff.restaurant_id),
-                    fetchItems(staff.restaurant_id)
+                    fetchCategories(staff.restaurant_id),
+                    fetchItems(staff.restaurant_id),
+                    fetchSuggestions(staff.restaurant_id)
                 ])
             }
             setLoading(false)
@@ -164,19 +169,63 @@ export default function POSPage() {
         if (data) setItems(data)
     }
 
+    const fetchSuggestions = async (resId: string) => {
+        const supabase = getSupabaseClient()
+        const { data, error } = await supabase
+            .from("menu_item_suggestions")
+            .select("*, suggested_item:menu_items!suggested_item_id(*)")
+            .eq("restaurant_id", resId)
+
+        if (error) {
+            console.error("Error fetching suggestions:", error)
+            return
+        }
+
+        if (data) setSuggestions(data)
+    }
+
     const handleItemClick = (item: MenuItem) => {
         setSelectedItem(item)
         setIsModifierOpen(true)
     }
 
     const addToCart = (item: MenuItem, quantity: number, notes: string) => {
-        // Age Verification Check
+        // Age Verification - Block until confirmed
         if (item.requires_id === true) {
-            toast({
-                title: "⚠️ Age Verification Required",
-                description: "Please verify customer ID before adding this item.",
-                duration: 4000,
-            })
+            const confirmed = window.confirm(
+                `⚠️ AGE VERIFICATION\n\nCustomer must be 18+\n\nHave you verified ID?\n\nOK = Add | Cancel = Don't add`
+            )
+            if (!confirmed) {
+                toast({ title: "Item Not Added", description: "Age verification not confirmed.", variant: "destructive" })
+                return
+            }
+        }
+
+        // Upselling Logic
+        const suggestion = suggestions.find(s => s.trigger_item_id === item.id)
+        if (suggestion) {
+            // Check if suggested item is already in cart
+            const isSuggestedInCart = suggestion.suggested_item_id
+                ? cart.some(c => c.menuItem.id === suggestion.suggested_item_id)
+                : false
+
+            if (!isSuggestedInCart) {
+                toast({
+                    title: "💡 Suggestion",
+                    description: suggestion.suggestion_message || (suggestion.suggested_item ? `Try adding ${suggestion.suggested_item.name}?` : "Recommended accompaniment"),
+                    action: suggestion.suggested_item ? (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addToCart(suggestion.suggested_item!, 1, "")}
+                            className="bg-white text-black hover:bg-gray-100 border-gray-200"
+                        >
+                            Add {suggestion.suggested_item.name}
+                        </Button>
+                    ) : undefined,
+                    duration: 5000,
+                })
+            }
         }
 
         const cartItemId = `${item.id}-${notes}`
@@ -261,16 +310,16 @@ export default function POSPage() {
                 orderType: order.order_type,
                 orderTotal: order.total,
                 itemsCount: cart.length,
-                staffId,
-                restaurantId
+                staffId: staffId || undefined,
+                restaurantId: restaurantId || undefined
             })
 
             await logOrderSentToCashier({
                 orderId: order.id,
                 orderNumber: order.id.slice(0, 8),
                 orderTotal: order.total,
-                staffId,
-                restaurantId
+                staffId: staffId || undefined,
+                restaurantId: restaurantId || undefined
             })
 
             // Show success dialog
@@ -396,16 +445,16 @@ export default function POSPage() {
                 orderType: order.order_type,
                 orderTotal: order.total,
                 itemsCount: cart.length,
-                staffId,
-                restaurantId
+                staffId: staffId || undefined,
+                restaurantId: restaurantId || undefined
             })
 
             await logOrderSentToKitchen({
                 orderId: order.id,
                 orderNumber: order.id.slice(0, 8),
                 itemsCount: cart.length,
-                staffId,
-                restaurantId
+                staffId: staffId || undefined,
+                restaurantId: restaurantId || undefined
             })
 
             // Success feedback with order reference
@@ -597,16 +646,16 @@ export default function POSPage() {
                 orderType: order.order_type,
                 orderTotal: order.total,
                 itemsCount: cart.length,
-                staffId,
-                restaurantId
+                staffId: staffId || undefined,
+                restaurantId: restaurantId || undefined
             })
 
             if (paymentData.discount > 0) {
                 await logDiscount({
                     orderId: order.id,
                     discountAmount: paymentData.discount,
-                    staffId,
-                    restaurantId
+                    staffId: staffId || undefined,
+                    restaurantId: restaurantId || undefined
                 })
             }
 

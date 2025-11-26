@@ -1,14 +1,15 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Toaster } from "@/components/ui/toaster"
 import './globals.css'
 
-const geist = Geist({ 
+const geist = Geist({
   subsets: ["latin"],
   display: 'swap',
   fallback: ['system-ui', 'arial'],
 });
-const geistMono = Geist_Mono({ 
+const geistMono = Geist_Mono({
   subsets: ["latin"],
   display: 'swap',
   fallback: ['monospace'],
@@ -46,6 +47,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geist.className} antialiased`}>
         {children}
+        <Toaster />
         <Analytics />
       </body>
     </html>

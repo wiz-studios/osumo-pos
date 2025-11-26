@@ -196,12 +196,15 @@ export interface ActivityLogDetails {
 
   // Menu-specific
   menu_item_name?: string
+  price?: number
+  category?: string
   old_price?: number
   new_price_value?: number
   availability?: boolean
 
   // Staff-specific
   staff_name?: string
+  role?: string
   old_role?: string
   new_role?: string
 
@@ -244,4 +247,14 @@ export interface Invoice {
   qr_code_data?: string
   is_mock_tims: boolean
   created_at: string
+}
+
+export interface MenuItemSuggestion {
+  id: string
+  restaurant_id: string
+  trigger_item_id: string
+  suggested_item_id?: string
+  suggestion_message?: string
+  created_at: string
+  suggested_item?: MenuItem
 }

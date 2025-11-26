@@ -50,12 +50,19 @@ export function ModernMenuCard({ item, onClick, isAdmin = false }: ModernMenuCar
                     )}
                 </div>
 
-                {/* Prep Time Badge */}
-                {item.prep_time_minutes > 0 && (
-                    <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-xs font-medium">
-                        {item.prep_time_minutes}min
-                    </div>
-                )}
+                {/* Top Right Badges */}
+                <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
+                    {item.requires_id && (
+                        <div className="bg-red-500/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-sm">
+                            18+
+                        </div>
+                    )}
+                    {item.prep_time_minutes > 0 && (
+                        <div className="bg-black/60 backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-xs font-medium">
+                            {item.prep_time_minutes}min
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Content Section */}
