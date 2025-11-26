@@ -59,6 +59,7 @@ export default function CashierPage() {
     const [receiptOpen, setReceiptOpen] = useState(false)
     const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending')
     const [showStats, setShowStats] = useState(false) // Collapsed by default on mobile
+    const [restaurantId, setRestaurantId] = useState<string | null>(null)
 
     const isAdmin = role === 'manager' || role === 'admin'
 
@@ -72,6 +73,7 @@ export default function CashierPage() {
     // Fetch data
     useEffect(() => {
         if (staffId && (role === 'cashier' || isAdmin)) {
+            fetchRestaurantId()
             fetchPendingOrders()
             if (isAdmin) {
                 fetchDailySales()
@@ -80,6 +82,23 @@ export default function CashierPage() {
             return cleanup
         }
     }, [staffId, role, isAdmin])
+
+    const fetchRestaurantId = async () => {
+        const supabase = getSupabaseClient()
+        try {
+            const { data } = await supabase
+                .from('staff')
+                .select('restaurant_id')
+                .eq('id', staffId)
+                .single()
+
+            if (data) {
+                setRestaurantId(data.restaurant_id)
+            }
+        } catch (error) {
+            console.error('Error fetching restaurant_id:', error)
+        }
+    }
 
     const fetchPendingOrders = async () => {
         const supabase = getSupabaseClient()
@@ -483,6 +502,7 @@ export default function CashierPage() {
                 phone: paymentMethod === 'mpesa' ? paymentData.phone_number : undefined,
                 success: true,
                 staffId,
+                restaurantId: restaurantId || undefined,
             })
 
             toast({
@@ -503,6 +523,7 @@ export default function CashierPage() {
                 success: false,
                 errorMessage: serialized?.message || 'Unknown error',
                 staffId,
+                restaurantId: restaurantId || undefined,
             })
 
             // Provide a defensive fallback for the toast message

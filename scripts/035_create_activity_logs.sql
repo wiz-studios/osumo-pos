@@ -45,13 +45,24 @@ CREATE POLICY "activity_logs_restaurant_access" ON activity_logs
     restaurant_id IN (
       SELECT restaurant_id FROM staff WHERE user_id = auth.uid()
     )
+    OR
+    restaurant_id IN (
+      SELECT restaurant_id FROM staff WHERE id = staff_id
+    )
   );
 
--- Policy: Only authenticated staff can insert logs
+-- Policy: Staff can insert logs for their own restaurant
+-- This works for both auth-based and PIN-based logins
 CREATE POLICY "activity_logs_insert" ON activity_logs
   FOR INSERT WITH CHECK (
+    -- Allow if user is authenticated and belongs to the restaurant
     restaurant_id IN (
       SELECT restaurant_id FROM staff WHERE user_id = auth.uid()
+    )
+    OR
+    -- Allow if the staff_id in the log matches a staff member in the same restaurant
+    (
+      staff_id IN (SELECT id FROM staff WHERE restaurant_id = activity_logs.restaurant_id)
     )
   );
 
