@@ -38,6 +38,7 @@ export interface MenuItem {
   is_spicy: boolean
   is_daily_special: boolean
   special_expiry?: string
+  requires_id?: boolean
   created_at: string
 }
 

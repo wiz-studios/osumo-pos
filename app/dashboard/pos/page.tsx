@@ -170,6 +170,15 @@ export default function POSPage() {
     }
 
     const addToCart = (item: MenuItem, quantity: number, notes: string) => {
+        // Age Verification Check
+        if (item.requires_id === true) {
+            toast({
+                title: "⚠️ Age Verification Required",
+                description: "Please verify customer ID before adding this item.",
+                duration: 4000,
+            })
+        }
+
         const cartItemId = `${item.id}-${notes}`
         setCart(prev => {
             const existing = prev.find(i => i.id === cartItemId)

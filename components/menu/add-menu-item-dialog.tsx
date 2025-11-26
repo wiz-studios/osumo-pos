@@ -25,6 +25,7 @@ const menuItemSchema = z.object({
   isVegan: z.boolean().default(false),
   isSpicy: z.boolean().default(false),
   isDailySpecial: z.boolean().default(false),
+  requiresId: z.boolean().default(false),
   image_url: z.string().optional(),
 })
 
@@ -75,6 +76,7 @@ export function AddMenuItemDialog({
       isVegan: false,
       isSpicy: false,
       isDailySpecial: false,
+      requiresId: false,
       image_url: "",
     },
   })
@@ -149,6 +151,7 @@ export function AddMenuItemDialog({
         is_vegan: data.isVegan,
         is_spicy: data.isSpicy,
         is_daily_special: data.isDailySpecial,
+        requires_id: data.requiresId,
         image_url: data.image_url || null,
         available: true,
       })
@@ -326,6 +329,20 @@ export function AddMenuItemDialog({
               <Label htmlFor="isDailySpecial" className="text-red-500 font-medium">
                 Daily Special 🔥
               </Label>
+            </div>
+            <div className="flex items-start space-x-2 pt-2 border-t mt-2">
+              <Checkbox
+                id="requiresId"
+                onCheckedChange={(checked) => setValue("requiresId", checked as boolean)}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <Label htmlFor="requiresId" className="font-medium text-amber-600 flex items-center gap-1">
+                  Requires ID (Age Verification) 🔞
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Check if this item requires customer ID verification (e.g., alcohol).
+                </p>
+              </div>
             </div>
           </div>
 

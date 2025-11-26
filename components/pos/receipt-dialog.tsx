@@ -75,6 +75,13 @@ export function ReceiptDialog({
                             </div>
                         </div>
 
+                        {/* Age Verification Warning */}
+                        {items.some(i => i.menu_item?.requires_id) && (
+                            <div className="border-t pt-2 text-center text-[10px] font-bold uppercase">
+                                ❗ Age-restricted item(s) — ID verified
+                            </div>
+                        )}
+
                         <div className="border-t pt-2 text-center">
                             <p>Paid via {order.payment_method?.toUpperCase()}</p>
                             <p className="mt-2">Thank you! Karibu tena!</p>

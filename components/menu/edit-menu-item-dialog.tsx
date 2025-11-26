@@ -28,6 +28,7 @@ const menuItemSchema = z.object({
   isVegan: z.boolean().default(false),
   isSpicy: z.boolean().default(false),
   isDailySpecial: z.boolean().default(false),
+  requiresId: z.boolean().default(false),
   available: z.boolean().default(true),
   image_url: z.string().optional(),
 })
@@ -70,6 +71,7 @@ export function EditMenuItemDialog({ open, onOpenChange, item, categories, onIte
       isVegan: item.is_vegan,
       isSpicy: item.is_spicy,
       isDailySpecial: item.is_daily_special,
+      requiresId: item.requires_id || false,
       available: item.available,
       image_url: item.image_url || "",
     },
@@ -96,6 +98,7 @@ export function EditMenuItemDialog({ open, onOpenChange, item, categories, onIte
         isVegan: item.is_vegan,
         isSpicy: item.is_spicy,
         isDailySpecial: item.is_daily_special,
+        requiresId: item.requires_id || false,
         available: item.available,
         image_url: item.image_url || "",
       })
@@ -158,6 +161,7 @@ export function EditMenuItemDialog({ open, onOpenChange, item, categories, onIte
           is_vegan: data.isVegan,
           is_spicy: data.isSpicy,
           is_daily_special: data.isDailySpecial,
+          requires_id: data.requiresId,
           available: data.available,
           image_url: data.image_url || null,
         })
@@ -194,6 +198,7 @@ export function EditMenuItemDialog({ open, onOpenChange, item, categories, onIte
         if (item.available !== data.available) changes.push(`Availability: ${item.available} -> ${data.available}`)
         if (item.category_id !== data.categoryId) changes.push('Category changed')
         if (item.is_daily_special !== data.isDailySpecial) changes.push(`Daily Special: ${item.is_daily_special} -> ${data.isDailySpecial}`)
+        if (item.requires_id !== data.requiresId) changes.push(`Requires ID: ${item.requires_id} -> ${data.requiresId}`)
 
         if (changes.length > 0) {
           await logMenuItemUpdated({
@@ -358,6 +363,21 @@ export function EditMenuItemDialog({ open, onOpenChange, item, categories, onIte
                   <Label htmlFor="isDailySpecial" className="text-red-500 font-medium">
                     Daily Special 🔥
                   </Label>
+                </div>
+                <div className="flex items-start space-x-2 pt-2 border-t mt-2">
+                  <Checkbox
+                    id="requiresId"
+                    checked={watch("requiresId")}
+                    onCheckedChange={(checked) => setValue("requiresId", checked as boolean)}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label htmlFor="requiresId" className="font-medium text-amber-600 flex items-center gap-1">
+                      Requires ID (Age Verification) 🔞
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Check if this item requires customer ID verification (e.g., alcohol).
+                    </p>
+                  </div>
                 </div>
                 <div className="flex items-center space-x-2 pt-2">
                   <Switch

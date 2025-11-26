@@ -81,7 +81,14 @@ export function CartView({
                             {cart.map((item) => (
                                 <div key={item.id} className="flex justify-between items-start p-3 rounded-lg bg-muted/30 border border-border">
                                     <div className="flex-1">
-                                        <div className="font-medium">{item.menuItem.name}</div>
+                                        <div className="font-medium flex items-center gap-2">
+                                            {item.menuItem.name}
+                                            {item.menuItem.requires_id && (
+                                                <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-bold border border-red-200">
+                                                    18+
+                                                </span>
+                                            )}
+                                        </div>
                                         {item.notes && (
                                             <div className="text-xs text-muted-foreground italic">"{item.notes}"</div>
                                         )}
