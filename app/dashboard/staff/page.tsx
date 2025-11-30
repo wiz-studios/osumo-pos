@@ -13,6 +13,17 @@ import { ProtectedPage } from "@/components/auth/protected-page"
 import { getStaffName } from "@/lib/auth-helpers"
 import type { StaffMember } from "@/lib/types"
 
+/**
+ * StaffPage Component
+ * 
+ * Manages staff members and their roles.
+ * Only accessible to Managers.
+ * Features:
+ * - List all staff members.
+ * - Add new staff (creates Supabase Auth user and Staff record).
+ * - Edit staff details and roles.
+ * - Deactivate/Activate staff access.
+ */
 export default function StaffPage() {
     const [staff, setStaff] = useState<StaffMember[]>([])
     const [loading, setLoading] = useState(true)
@@ -23,6 +34,9 @@ export default function StaffPage() {
         fetchStaff()
     }, [])
 
+    /**
+     * Fetches all staff members for the current restaurant.
+     */
     const fetchStaff = async () => {
         setLoading(true)
         const supabase = getSupabaseClient()
@@ -78,11 +92,11 @@ export default function StaffPage() {
                         <h1 className="text-3xl font-bold">Staff Management</h1>
                         <p className="text-muted-foreground mt-1">Manage staff members and permissions</p>
                     </div>
-                    <Button 
+                    <Button
                         onClick={(e) => {
                             e.preventDefault()
                             setShowAddDialog(true)
-                        }} 
+                        }}
                         className="gap-2"
                     >
                         <Plus className="h-4 w-4" />

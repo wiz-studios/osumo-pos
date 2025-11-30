@@ -32,6 +32,12 @@ interface CartViewProps {
     processing: boolean
 }
 
+/**
+ * CartView Component
+ * 
+ * Displays the current items in the cart, allows quantity adjustments, and handles order submission.
+ * Adapts its view based on the user's role (waiter vs cashier) and order type (dine-in vs takeaway).
+ */
 export function CartView({
     cart,
     onUpdateQuantity,
@@ -69,7 +75,7 @@ export function CartView({
                 }}
             >
                 <div className="pr-2">
-                    {/* Cart Items */}
+                    {/* Cart Items List */}
                     {cart.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10 m-2">
                             <ShoppingCart className="h-8 w-8 mb-2 opacity-20" />
@@ -118,7 +124,7 @@ export function CartView({
                         </div>
                     )}
 
-                    {/* Total and Actions */}
+                    {/* Total Summary and Action Buttons */}
                     <div className="mt-4 space-y-4 border-t pt-4 p-2">
                         <div className="space-y-2">
                             <div className="flex justify-between text-sm">

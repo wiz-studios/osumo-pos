@@ -33,6 +33,13 @@ interface DashboardOrder {
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1']
 
+/**
+ * DashboardPage Component
+ * 
+ * The main analytics dashboard for the restaurant.
+ * Displays key metrics (Orders, Sales, etc.) and visual charts (Top Items, Trends).
+ * Fetches data from Supabase and processes it for visualization.
+ */
 export default function DashboardPage() {
   const { role } = useStaffRole()
   const [loading, setLoading] = useState(true)
@@ -49,6 +56,10 @@ export default function DashboardPage() {
   const [paymentMethodData, setPaymentMethodData] = useState<any[]>([])
 
   useEffect(() => {
+    /**
+     * Fetches all orders for the current year to generate dashboard statistics.
+     * Performs client-side aggregation for various charts.
+     */
     async function fetchData() {
       try {
         const supabase = getSupabaseClient()
@@ -88,6 +99,7 @@ export default function DashboardPage() {
         }
 
         // --- Process Data ---
+        // The following sections aggregate the raw order data into specific formats for charts.
 
         // 1. Key Metrics
         const totalOrders = typedOrders.length

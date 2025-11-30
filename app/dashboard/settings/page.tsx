@@ -11,6 +11,13 @@ import { useToast } from "@/hooks/use-toast"
 import { ProtectedPage } from "@/components/auth/protected-page"
 import { Save } from "lucide-react"
 
+/**
+ * SettingsPage Component
+ * 
+ * Configures restaurant-wide settings, specifically for KRA TIMS integration.
+ * Allows managers to set Business Name, KRA PIN, and VAT status.
+ * These settings are used when generating invoices and receipts.
+ */
 export default function SettingsPage() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
@@ -24,6 +31,9 @@ export default function SettingsPage() {
     fetchSettings()
   }, [])
 
+  /**
+   * Fetches current KRA settings from the 'restaurants' table.
+   */
   const fetchSettings = async () => {
     setLoading(true)
     const supabase = getSupabaseClient()

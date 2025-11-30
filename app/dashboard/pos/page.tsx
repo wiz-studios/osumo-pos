@@ -34,6 +34,17 @@ interface CartItem {
     id: string // unique id for cart item (combination of item id + notes)
 }
 
+/**
+ * POSPage Component
+ * 
+ * The Point of Sale (POS) interface for waiters and cashiers.
+ * Features:
+ * - Menu browsing and searching
+ * - Cart management (add/remove items, update quantities)
+ * - Order creation (Dine-in/Takeaway)
+ * - Integration with Kitchen Display System (Send to Kitchen)
+ * - Payment processing and KRA Invoice generation (Send to Cashier/Checkout)
+ */
 export default function POSPage() {
     const { toast } = useToast()
     const [categories, setCategories] = useState<MenuCategory[]>([])
@@ -138,6 +149,7 @@ export default function POSPage() {
             setLoading(false)
         }
 
+        // Initial data fetch: Staff details, Menu Categories, Items, and Suggestions
         fetchData()
     }, [])
 
@@ -189,6 +201,10 @@ export default function POSPage() {
         setIsModifierOpen(true)
     }
 
+    /**
+     * Adds an item to the cart.
+     * Handles age verification for restricted items and checks for upselling opportunities.
+     */
     const addToCart = (item: MenuItem, quantity: number, notes: string) => {
         // Age Verification - Block until confirmed
         if (item.requires_id === true) {
@@ -252,6 +268,10 @@ export default function POSPage() {
 
     const cartTotal = cart.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0)
 
+    /**
+     * Creates an unpaid order and sends it to the Cashier.
+     * Used for "Pay First" workflows or when the waiter wants to hand off payment immediately.
+     */
     const handleCreateUnpaidOrder = async () => {
         if (!restaurantId || !staffId || cart.length === 0) return
 
@@ -350,6 +370,11 @@ export default function POSPage() {
         }
     }
 
+    /**
+     * Sends the current cart to the Kitchen.
+     * Creates an order with status 'in_kitchen'.
+     * Requires a table selection for Dine-in orders.
+     */
     const handleSendToKitchen = async () => {
         // Validation
         if (!restaurantId || !staffId || cart.length === 0) {
@@ -491,6 +516,14 @@ export default function POSPage() {
     }
 
 
+    /**
+     * Finalizes a payment and creates a completed order.
+     * Handles:
+     * - Order creation
+     * - Payment recording
+     * - KRA Invoice generation (QR code)
+     * - Inventory deduction
+     */
     const handleCheckoutComplete = async (paymentData: any) => {
         if (!restaurantId || cart.length === 0) return
 

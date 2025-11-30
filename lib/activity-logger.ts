@@ -99,6 +99,8 @@ export async function logActivity({
 
 /**
  * Helper: Log payment processing
+ * Records successful or failed payment attempts.
+ * Masks sensitive data like transaction IDs and phone numbers.
  */
 export async function logPayment({
     orderId,
@@ -149,6 +151,8 @@ export async function logPayment({
 
 /**
  * Helper: Log stock adjustment
+ * Records manual inventory changes (e.g., spoilage, restocking).
+ * Tracks both old and new quantities for audit purposes.
  */
 export async function logStockAdjustment({
     inventoryItemId,

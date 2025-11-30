@@ -37,6 +37,14 @@ interface OrderWithItems {
   }>
 }
 
+/**
+ * OrdersPage Component
+ * 
+ * Displays active orders for waiters and admins.
+ * Allows waiters to track their orders' status (Cooking, Ready, etc.).
+ * Supports real-time updates when kitchen status changes.
+ * Admins can view all orders and history.
+ */
 export default function OrdersPage() {
   const { role, staffId, loading: roleLoading } = useStaffRole()
   const { toast } = useToast()
@@ -178,6 +186,10 @@ export default function OrdersPage() {
     }
   }
 
+  /**
+   * Subscribes to real-time changes in the 'orders' table.
+   * Updates the UI instantly when an order's status changes (e.g., when kitchen marks as ready).
+   */
   const setupRealtime = () => {
     const supabase = getSupabaseClient()
 
@@ -218,6 +230,9 @@ export default function OrdersPage() {
     }
   }
 
+  /**
+   * Moves a ready order to the cashier queue for payment.
+   */
   const handleSendToCashier = async (orderId: string) => {
     const supabase = getSupabaseClient()
 

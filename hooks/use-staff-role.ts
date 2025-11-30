@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react'
 
+/**
+ * Custom hook to manage staff role and permissions.
+ * Reads staff details from localStorage for performance.
+ * Listens for storage events to sync state across tabs/windows.
+ */
 export function useStaffRole() {
     const [role, setRole] = useState<string | null>(null)
     const [staffId, setStaffId] = useState<string | null>(null)
@@ -45,6 +50,10 @@ export function useStaffRole() {
     const isCashier = role === 'cashier'
     const isKitchen = role === 'kitchen'
 
+    /**
+     * Checks if the current staff member has access to a specific feature.
+     * Maps features to allowed roles.
+     */
     const canAccess = (feature: string): boolean => {
         if (!role) return false
 

@@ -19,6 +19,13 @@ interface AdjustStockDialogProps {
     onSuccess: () => void
 }
 
+/**
+ * AdjustStockDialog Component
+ * 
+ * A dialog form for manually adjusting inventory stock levels.
+ * Supports adding or subtracting stock, specifying reasons (purchase, spoilage, etc.), and logging notes.
+ * Updates both the `inventory_items` table and logs the transaction.
+ */
 export function AdjustStockDialog({ open, onOpenChange, onSuccess }: AdjustStockDialogProps) {
     const { toast } = useToast()
     const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
@@ -61,6 +68,10 @@ export function AdjustStockDialog({ open, onOpenChange, onSuccess }: AdjustStock
         setNotes("")
     }
 
+    /**
+     * Handles the form submission.
+     * Validates input, updates the database, and logs the activity.
+     */
     const handleSubmit = async () => {
         if (!selectedItemId || !quantity || parseFloat(quantity) <= 0) {
             toast({
@@ -83,7 +94,7 @@ export function AdjustStockDialog({ open, onOpenChange, onSuccess }: AdjustStock
 
             const adjustmentAmount = parseFloat(quantity) * (adjustmentType === "add" ? 1 : -1)
 
-            // Update inventory stock
+            // Update inventory stock in the database
             const { data: item } = await supabase
                 .from("inventory_items")
                 .select("quantity_in_stock")
@@ -103,7 +114,7 @@ export function AdjustStockDialog({ open, onOpenChange, onSuccess }: AdjustStock
                 })
                 .eq("id", selectedItemId)
 
-            // Create transaction log
+            // Create a transaction log entry for inventory tracking
             await supabase.from("inventory_transactions").insert({
                 restaurant_id: staff.restaurant_id,
                 inventory_item_id: selectedItemId,
@@ -113,7 +124,7 @@ export function AdjustStockDialog({ open, onOpenChange, onSuccess }: AdjustStock
                 created_by: staff.id,
             })
 
-            // Log activity for audit trail
+            // Log the activity to the global activity log for audit purposes
             const selectedItem = inventoryItems.find(i => i.id === selectedItemId)
             if (selectedItem) {
                 await logStockAdjustment({

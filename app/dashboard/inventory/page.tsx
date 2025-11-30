@@ -14,6 +14,16 @@ import { EditInventoryItemDialog } from "@/components/inventory/edit-inventory-i
 import { AdjustStockDialog } from "@/components/inventory/adjust-stock-dialog"
 import type { InventoryItem } from "@/lib/types"
 
+/**
+ * InventoryPage Component
+ * 
+ * Manages the restaurant's inventory items.
+ * Features:
+ * - List all inventory items with stock levels and value.
+ * - Real-time updates when stock changes (e.g., from POS sales).
+ * - Add/Edit/Delete inventory items.
+ * - Manual stock adjustments (restock, wastage, etc.).
+ */
 export default function InventoryPage() {
   const router = useRouter()
   const supabase = createBrowserClient(
@@ -30,7 +40,8 @@ export default function InventoryPage() {
   useEffect(() => {
     fetchInventory()
 
-    // Real-time subscription
+    // Real-time subscription to 'inventory_items' table
+    // Ensures the UI stays in sync when stock is deducted by orders or updated by other staff
     const channel = supabase
       .channel('inventory-updates')
       .on(

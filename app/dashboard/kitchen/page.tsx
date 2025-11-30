@@ -28,6 +28,13 @@ interface KitchenOrder {
   }>
 }
 
+/**
+ * KitchenPage Component (KDS)
+ * 
+ * The Kitchen Display System interface.
+ * Displays orders in three columns: New, Preparing, and Done.
+ * Auto-refreshes via Supabase Realtime to show incoming orders instantly.
+ */
 export default function KitchenPage() {
   const router = useRouter()
   const { role, loading: roleLoading } = useStaffRole()
@@ -80,6 +87,9 @@ export default function KitchenPage() {
     }
   }, [])
 
+  /**
+   * Fetches today's orders that are either in the kitchen or pending payment.
+   */
   const fetchOrders = async () => {
     const supabase = getSupabaseClient()
 

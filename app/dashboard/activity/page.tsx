@@ -27,6 +27,13 @@ interface ActivityLogWithStaff extends ActivityLog {
     staff?: StaffMember
 }
 
+/**
+ * ActivityPage Component
+ * 
+ * Displays a log of sensitive actions taken within the application (e.g., payments, stock adjustments).
+ * Allows filtering by staff member and action type.
+ * Supports real-time updates via Supabase subscriptions.
+ */
 export default function ActivityPage() {
     const [logs, setLogs] = useState<ActivityLogWithStaff[]>([])
     const [staff, setStaff] = useState<StaffMember[]>([])
@@ -40,6 +47,10 @@ export default function ActivityPage() {
         setupRealtime()
     }, [])
 
+    /**
+     * Fetches initial activity logs and staff data.
+     * Restricts data to the current user's restaurant.
+     */
     const fetchData = async () => {
         setLoading(true)
         const supabase = getSupabaseClient()
@@ -83,6 +94,10 @@ export default function ActivityPage() {
         }
     }
 
+    /**
+     * Sets up a real-time subscription to the 'activity_logs' table.
+     * Listens for new INSERT events and updates the logs list live.
+     */
     const setupRealtime = () => {
         const supabase = getSupabaseClient()
 
@@ -115,6 +130,9 @@ export default function ActivityPage() {
         }
     }
 
+    /**
+     * Returns the appropriate icon component based on the action type.
+     */
     const getActionIcon = (actionType: string) => {
         const icons: Record<string, any> = {
             payment_processed: CreditCard,
@@ -130,6 +148,9 @@ export default function ActivityPage() {
         return <Icon className="h-4 w-4" />
     }
 
+    /**
+     * Returns a styled Badge component representing the action type.
+     */
     const getActionBadge = (actionType: string) => {
         const variants: Record<string, any> = {
             payment_processed: "default",
@@ -173,6 +194,9 @@ export default function ActivityPage() {
         })
     }
 
+    /**
+     * Formats the JSON details of a log entry into a readable array of strings.
+     */
     const formatDetails = (log: ActivityLogWithStaff) => {
         const details = log.details
         if (!details) return null

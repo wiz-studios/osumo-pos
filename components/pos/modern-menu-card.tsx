@@ -11,6 +11,12 @@ interface ModernMenuCardProps {
     isAdmin?: boolean
 }
 
+/**
+ * ModernMenuCard Component
+ * 
+ * Renders a card for a menu item, displaying its image, price, description, and tags.
+ * It handles both customer interactions (add to cart) and admin interactions (edit item).
+ */
 export function ModernMenuCard({ item, onClick, isAdmin = false }: ModernMenuCardProps) {
     return (
         <Card
@@ -18,6 +24,7 @@ export function ModernMenuCard({ item, onClick, isAdmin = false }: ModernMenuCar
             onClick={() => onClick(item)}
         >
             {/* Image Section with Badges */}
+            {/* Displays the item image or a placeholder if none exists */}
             <div className="relative w-full h-48 md:h-56 overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200">
                 {item.image_url ? (
                     <Image
@@ -33,7 +40,7 @@ export function ModernMenuCard({ item, onClick, isAdmin = false }: ModernMenuCar
                     </div>
                 )}
 
-                {/* Badge Overlays */}
+                {/* Badge Overlays - Availability and Daily Special */}
                 <div className="absolute top-3 left-3 flex flex-col gap-2 items-start">
                     {isAdmin && (
                         <div className={`px-2.5 py-1 rounded-full text-xs font-medium shadow-sm backdrop-blur-sm ${item.available
@@ -50,7 +57,7 @@ export function ModernMenuCard({ item, onClick, isAdmin = false }: ModernMenuCar
                     )}
                 </div>
 
-                {/* Top Right Badges */}
+                {/* Top Right Badges - Age Restriction and Prep Time */}
                 <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
                     {item.requires_id && (
                         <div className="bg-red-500/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-sm">
@@ -100,7 +107,7 @@ export function ModernMenuCard({ item, onClick, isAdmin = false }: ModernMenuCar
                     )}
                 </div>
 
-                {/* Action Button */}
+                {/* Action Button - Edit for Admin, Add to Cart for Customer */}
                 <button
                     onClick={(e) => {
                         e.stopPropagation()

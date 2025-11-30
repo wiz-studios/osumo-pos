@@ -30,6 +30,13 @@ interface CheckoutDialogProps {
     processing: boolean
 }
 
+/**
+ * CheckoutDialog Component
+ * 
+ * Handles the final step of the order process.
+ * Allows selecting order type (dine-in/takeaway), table (if dine-in), and payment method.
+ * Calculates totals including discounts and change due.
+ */
 export function CheckoutDialog({
     open,
     onOpenChange,
@@ -58,7 +65,7 @@ export function CheckoutDialog({
     const total = Math.max(0, subtotal - discountAmount)
     const change = Math.max(0, (parseFloat(cashReceived) || 0) - total)
 
-    // Fetch tables and restaurant ID
+    // Fetch tables and restaurant ID on mount
     useEffect(() => {
         const fetchTables = async () => {
             const supabase = getSupabaseClient()
@@ -73,6 +80,7 @@ export function CheckoutDialog({
 
                 if (staff?.restaurant_id) {
                     setRestaurantId(staff.restaurant_id)
+                    // Only fetch active tables for the current restaurant
                     const { data: tablesData } = await supabase
                         .from("tables")
                         .select("*")
@@ -100,6 +108,9 @@ export function CheckoutDialog({
         }
     }, [open])
 
+    /**
+     * Compiles payment data and triggers the completion callback.
+     */
     const handleComplete = () => {
         const paymentData = {
             total,
@@ -117,6 +128,9 @@ export function CheckoutDialog({
         onComplete(paymentData)
     }
 
+    /**
+     * Validates if the payment can be processed based on the selected method and inputs.
+     */
     const isPaymentValid = () => {
         // Must select order type
         if (!orderType) return false

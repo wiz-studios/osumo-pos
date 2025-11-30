@@ -36,7 +36,10 @@ export async function logActivity(
 }
 
 /**
- * Check if a role has permission to perform an action
+ * Check if a role has permission to perform an action.
+ * Implements a simple Role-Based Access Control (RBAC) system.
+ * - Managers have full access ('*').
+ * - Other roles have specific allowed actions.
  */
 export function checkPermission(role: string, action: string): boolean {
     const permissions: Record<string, string[]> = {

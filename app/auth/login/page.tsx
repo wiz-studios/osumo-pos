@@ -16,6 +16,13 @@ const validateEmail = (email: string): boolean => {
   return emailRegex.test(email)
 }
 
+/**
+ * LoginPage Component
+ * 
+ * Handles user authentication via Supabase Auth.
+ * Validates credentials and checks for a corresponding 'staff' record.
+ * Stores staff session details (ID, Name, Role) in localStorage for quick access.
+ */
 export default function LoginPage() {
   const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
@@ -48,6 +55,7 @@ export default function LoginPage() {
     try {
       const supabase = getSupabaseClient()
 
+      // 1. Authenticate with Supabase
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -68,7 +76,7 @@ export default function LoginPage() {
         return
       }
 
-      // Fetch staff details for the logged-in user
+      // 2. Fetch staff details for the logged-in user
       const { data: staffData, error: staffError } = await supabase
         .from("staff")
         .select("*")

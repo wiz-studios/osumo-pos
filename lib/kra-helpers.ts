@@ -62,7 +62,13 @@ export async function generateQRCode(invoiceData: {
 }
 
 /**
- * Format KRA-compliant receipt text
+ * Format KRA-compliant receipt text.
+ * Generates a plain text representation of the receipt suitable for printing.
+ * Includes:
+ * - Header (Business Name, PIN, Invoice #)
+ * - Itemized list
+ * - Tax breakdown (VAT)
+ * - Footer (Payment info, QR placeholder)
  */
 export function formatKRAReceipt(
     order: Order & { order_items?: OrderItem[] },

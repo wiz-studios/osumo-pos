@@ -38,6 +38,13 @@ export const metadata: Metadata = {
   },
 }
 
+/**
+ * RootLayout Component
+ * 
+ * The top-level layout for the application.
+ * Includes global providers like Toaster and Analytics.
+ * Sets up the HTML structure and applies global fonts.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
