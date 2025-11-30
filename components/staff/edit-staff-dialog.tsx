@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
@@ -215,9 +216,8 @@ export function EditStaffDialog({ open, onOpenChange, staff, onSuccess }: EditSt
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="newPin">New PIN</Label>
-                                    <Input
+                                    <PasswordInput
                                         id="newPin"
-                                        type="password"
                                         maxLength={4}
                                         placeholder="1234"
                                         value={newPin}
@@ -227,9 +227,8 @@ export function EditStaffDialog({ open, onOpenChange, staff, onSuccess }: EditSt
 
                                 <div className="space-y-2">
                                     <Label htmlFor="confirmPin">Confirm PIN</Label>
-                                    <Input
+                                    <PasswordInput
                                         id="confirmPin"
-                                        type="password"
                                         maxLength={4}
                                         placeholder="1234"
                                         value={confirmPin}

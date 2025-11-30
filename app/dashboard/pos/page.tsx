@@ -26,6 +26,8 @@ import { useToast } from "@/hooks/use-toast"
 import { CartView } from "@/components/pos/cart-view"
 import { ModernMenuCard } from "@/components/pos/modern-menu-card"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { AgeVerificationDialog } from "@/components/pos/age-verification-dialog"
+import { isFoodItem, isDrinkItem, getDrinkSuggestions } from "@/lib/drink-pairing-helpers"
 
 interface CartItem {
     menuItem: MenuItem
@@ -79,6 +81,14 @@ export default function POSPage() {
         tableOrType?: string
         itemCount?: number
         total?: number
+    } | null>(null)
+
+    // Age verification dialog state
+    const [isAgeVerificationOpen, setIsAgeVerificationOpen] = useState(false)
+    const [pendingItem, setPendingItem] = useState<{
+        item: MenuItem
+        quantity: number
+        notes: string
     } | null>(null)
 
     // Table selection state (for Send to Kitchen)
@@ -206,18 +216,77 @@ export default function POSPage() {
      * Handles age verification for restricted items and checks for upselling opportunities.
      */
     const addToCart = (item: MenuItem, quantity: number, notes: string) => {
-        // Age Verification - Block until confirmed
+        // Age Verification - Show dialog if required
         if (item.requires_id === true) {
-            const confirmed = window.confirm(
-                `⚠️ AGE VERIFICATION\n\nCustomer must be 18+\n\nHave you verified ID?\n\nOK = Add | Cancel = Don't add`
-            )
-            if (!confirmed) {
-                toast({ title: "Item Not Added", description: "Age verification not confirmed.", variant: "destructive" })
-                return
+            setPendingItem({ item, quantity, notes })
+            setIsAgeVerificationOpen(true)
+            return
+        }
+
+        // Proceed with adding to cart
+        addItemToCart(item, quantity, notes)
+    }
+
+    const addItemToCart = (item: MenuItem, quantity: number, notes: string) => {
+        // First, add the item to cart
+        const cartItemId = `${item.id}-${notes}`
+        setCart(prev => {
+            const existing = prev.find(i => i.id === cartItemId)
+            if (existing) {
+                return prev.map(i => i.id === cartItemId ? { ...i, quantity: i.quantity + quantity } : i)
+            }
+            return [...prev, { menuItem: item, quantity, notes, id: cartItemId }]
+        })
+
+
+        // Drink Pairing Logic - Check if this is a food item and no drinks in cart
+        const isFood = isFoodItem(item)
+        const hasDrinkInCart = cart.some(cartItem => isDrinkItem(cartItem.menuItem, categories))
+
+        if (isFood && !hasDrinkInCart) {
+            // Get drink suggestions from menu or use defaults
+            const drinkSuggestions = getDrinkSuggestions(items, 2)
+
+            if (drinkSuggestions.length > 0) {
+                toast({
+                    title: "🍹 Perfect Pairing!",
+                    description: (
+                        <div className="space-y-1">
+                            <p className="font-medium">{item.name} goes great with:</p>
+                            {drinkSuggestions.map((drink, index) => (
+                                <div key={index} className="flex items-center gap-2 text-sm">
+                                    <span>{drink.icon}</span>
+                                    <span>{drink.name}</span>
+                                    <span className="text-muted-foreground">(KES {drink.price})</span>
+                                </div>
+                            ))}
+                        </div>
+                    ),
+                    action: (
+                        <div className="flex gap-2 flex-wrap">
+                            {drinkSuggestions.map((drink, index) => (
+                                <Button
+                                    key={index}
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        if (drink.menuItem) {
+                                            addToCart(drink.menuItem, 1, "")
+                                        }
+                                    }}
+                                    className="bg-white text-black hover:bg-gray-100 border-gray-200"
+                                >
+                                    Add {drink.name.split(" ")[0]}
+                                </Button>
+                            ))}
+                        </div>
+                    ),
+                    duration: 5000,
+                })
             }
         }
 
-        // Upselling Logic
+        // Existing Up selling Logic (from suggestions table)
         const suggestion = suggestions.find(s => s.trigger_item_id === item.id)
         if (suggestion) {
             // Check if suggested item is already in cart
@@ -244,14 +313,24 @@ export default function POSPage() {
             }
         }
 
-        const cartItemId = `${item.id}-${notes}`
-        setCart(prev => {
-            const existing = prev.find(i => i.id === cartItemId)
-            if (existing) {
-                return prev.map(i => i.id === cartItemId ? { ...i, quantity: i.quantity + quantity } : i)
-            }
-            return [...prev, { menuItem: item, quantity, notes, id: cartItemId }]
+    }
+
+    const handleAgeVerificationConfirm = () => {
+        if (pendingItem) {
+            addItemToCart(pendingItem.item, pendingItem.quantity, pendingItem.notes)
+            setPendingItem(null)
+        }
+        setIsAgeVerificationOpen(false)
+    }
+
+    const handleAgeVerificationCancel = () => {
+        toast({
+            title: "Item Not Added",
+            description: "Age verification not confirmed.",
+            variant: "destructive"
         })
+        setPendingItem(null)
+        setIsAgeVerificationOpen(false)
     }
 
     const updateCartQuantity = (cartItemId: string, delta: number) => {
@@ -643,8 +722,8 @@ export default function POSPage() {
                 // Calculate total deductions per inventory item
                 const deductions = new Map<string, number>()
                 cart.forEach(cartItem => {
-                    const itemRecipes = recipes.filter((r: RecipeIngredient) => r.menu_item_id === cartItem.menuItem.id)
-                    itemRecipes.forEach((recipe: RecipeIngredient) => {
+                    const itemRecipes = recipes.filter(r => r.menu_item_id === cartItem.menuItem.id)
+                    itemRecipes.forEach(recipe => {
                         const currentDeduction = deductions.get(recipe.inventory_item_id) || 0
                         deductions.set(recipe.inventory_item_id, currentDeduction + (recipe.quantity_required * cartItem.quantity))
                     })
@@ -890,6 +969,12 @@ export default function POSPage() {
                 tableOrType={successData?.tableOrType}
                 itemCount={successData?.itemCount}
                 total={successData?.total}
+            />
+
+            <AgeVerificationDialog
+                open={isAgeVerificationOpen}
+                onConfirm={handleAgeVerificationConfirm}
+                onCancel={handleAgeVerificationCancel}
             />
         </div>
     )

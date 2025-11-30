@@ -15,8 +15,11 @@ export const getSupabaseServer = async () => {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-          } catch (err) {
-            console.error("Failed to set cookies:", err)
+          } catch {
+            // Cookie writes will fail in Server Components (layouts, pages) because
+            // Next.js only allows cookie modifications in Server Actions or Route Handlers.
+            // This is expected and safe - the session is still read correctly, and cookie
+            // updates will happen on subsequent requests via client-side Supabase.
           }
         },
       },

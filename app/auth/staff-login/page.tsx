@@ -8,6 +8,7 @@ import { logStaffLogin } from "@/lib/activity-logger"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Lock } from "lucide-react"
 import type { StaffMember } from "@/lib/types"
@@ -161,8 +162,7 @@ export default function StaffLoginPage() {
                             <span className="text-sm">Enter your 4-digit PIN</span>
                         </div>
 
-                        <Input
-                            type="password"
+                        <PasswordInput
                             inputMode="numeric"
                             maxLength={4}
                             value={pin}

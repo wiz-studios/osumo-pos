@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getSupabaseClient } from "@/lib/supabase/client"
@@ -200,9 +201,8 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="pin">PIN</Label>
-                                <Input
+                                <PasswordInput
                                     id="pin"
-                                    type="password"
                                     maxLength={4}
                                     placeholder="1234"
                                     {...register("pin")}
@@ -212,9 +212,8 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
 
                             <div className="space-y-2">
                                 <Label htmlFor="confirmPin">Confirm PIN</Label>
-                                <Input
+                                <PasswordInput
                                     id="confirmPin"
-                                    type="password"
                                     maxLength={4}
                                     placeholder="1234"
                                     {...register("confirmPin")}
